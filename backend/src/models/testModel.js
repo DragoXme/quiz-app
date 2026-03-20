@@ -67,39 +67,49 @@ const getQuestionsForTest = async (userId, tagIds, totalCount) => {
     if (tagIds && tagIds.length > 0) {
         // Priority: questions matching ALL selected tags
         const priorityResult = await pool.query(
-            `SELECT DISTINCT q.id, q.min_time, q.max_time
+            `SELECT q.id, q.min_time, q.max_time
              FROM questions q
-             JOIN question_tags qt ON q.id = qt.question_id
              WHERE q.user_id = $1
-             AND qt.tag_id = ANY($2::uuid[])
-             GROUP BY q.id, q.min_time, q.max_time
-             HAVING COUNT(DISTINCT qt.tag_id) = $3
+             AND (
+                 SELECT COUNT(DISTINCT qt.tag_id)
+                 FROM question_tags qt
+                 WHERE qt.question_id = q.id
+                 AND qt.tag_id = ANY($2::uuid[])
+             ) = $3
              ORDER BY RANDOM()`,
             [userId, tagIds, tagIds.length]
         );
         priorityQuestions = priorityResult.rows;
 
-        // Secondary: questions matching at least 1 selected tag (but not all)
+        // Secondary: questions matching at least 1 tag but not all
         if (priorityQuestions.length > 0) {
             const selectedIds = priorityQuestions.map(q => q.id);
             const secondaryResult = await pool.query(
-                `SELECT DISTINCT q.id, q.min_time, q.max_time
+                `SELECT q.id, q.min_time, q.max_time
                  FROM questions q
-                 JOIN question_tags qt ON q.id = qt.question_id
                  WHERE q.user_id = $1
-                 AND qt.tag_id = ANY($2::uuid[])
                  AND q.id != ANY($3::uuid[])
+                 AND (
+                     SELECT COUNT(DISTINCT qt.tag_id)
+                     FROM question_tags qt
+                     WHERE qt.question_id = q.id
+                     AND qt.tag_id = ANY($2::uuid[])
+                 ) > 0
                  ORDER BY RANDOM()`,
                 [userId, tagIds, selectedIds]
             );
             remainingQuestions = secondaryResult.rows;
         } else {
             const secondaryResult = await pool.query(
-                `SELECT DISTINCT q.id, q.min_time, q.max_time
+                `SELECT q.id, q.min_time, q.max_time
                  FROM questions q
-                 JOIN question_tags qt ON q.id = qt.question_id
                  WHERE q.user_id = $1
-                 AND qt.tag_id = ANY($2::uuid[])
+                 AND (
+                     SELECT COUNT(DISTINCT qt.tag_id)
+                     FROM question_tags qt
+                     WHERE qt.question_id = q.id
+                     AND qt.tag_id = ANY($2::uuid[])
+                 ) > 0
                  ORDER BY RANDOM()`,
                 [userId, tagIds]
             );
