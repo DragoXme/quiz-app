@@ -61,7 +61,6 @@ const completeContest = async (contestId) => {
 };
 
 const getQuestionsForTest = async (userId, tagIds, totalCount) => {
-    // Get questions that match ALL selected tags first (priority questions)
     let priorityQuestions = [];
     let remainingQuestions = [];
 
@@ -81,18 +80,31 @@ const getQuestionsForTest = async (userId, tagIds, totalCount) => {
         priorityQuestions = priorityResult.rows;
 
         // Secondary: questions matching at least 1 selected tag (but not all)
-        const selectedIds = priorityQuestions.map(q => q.id);
-        const secondaryResult = await pool.query(
-            `SELECT DISTINCT q.id, q.min_time, q.max_time
-             FROM questions q
-             JOIN question_tags qt ON q.id = qt.question_id
-             WHERE q.user_id = $1
-             AND qt.tag_id = ANY($2::uuid[])
-             AND q.id != ALL($3::uuid[])
-             ORDER BY RANDOM()`,
-            [userId, tagIds, selectedIds.length > 0 ? selectedIds : ['00000000-0000-0000-0000-000000000000']]
-        );
-        remainingQuestions = secondaryResult.rows;
+        if (priorityQuestions.length > 0) {
+            const selectedIds = priorityQuestions.map(q => q.id);
+            const secondaryResult = await pool.query(
+                `SELECT DISTINCT q.id, q.min_time, q.max_time
+                 FROM questions q
+                 JOIN question_tags qt ON q.id = qt.question_id
+                 WHERE q.user_id = $1
+                 AND qt.tag_id = ANY($2::uuid[])
+                 AND q.id != ANY($3::uuid[])
+                 ORDER BY RANDOM()`,
+                [userId, tagIds, selectedIds]
+            );
+            remainingQuestions = secondaryResult.rows;
+        } else {
+            const secondaryResult = await pool.query(
+                `SELECT DISTINCT q.id, q.min_time, q.max_time
+                 FROM questions q
+                 JOIN question_tags qt ON q.id = qt.question_id
+                 WHERE q.user_id = $1
+                 AND qt.tag_id = ANY($2::uuid[])
+                 ORDER BY RANDOM()`,
+                [userId, tagIds]
+            );
+            remainingQuestions = secondaryResult.rows;
+        }
     }
 
     // Fill remaining slots with random questions not already selected
@@ -100,19 +112,30 @@ const getQuestionsForTest = async (userId, tagIds, totalCount) => {
     const needed = totalCount - allSelectedIds.length;
 
     if (needed > 0) {
-        const randomResult = await pool.query(
-            `SELECT q.id, q.min_time, q.max_time
-             FROM questions q
-             WHERE q.user_id = $1
-             AND q.id != ALL($2::uuid[])
-             ORDER BY RANDOM()
-             LIMIT $3`,
-            [userId, allSelectedIds.length > 0 ? allSelectedIds : ['00000000-0000-0000-0000-000000000000'], needed]
-        );
+        let randomResult;
+        if (allSelectedIds.length > 0) {
+            randomResult = await pool.query(
+                `SELECT q.id, q.min_time, q.max_time
+                 FROM questions q
+                 WHERE q.user_id = $1
+                 AND q.id != ANY($2::uuid[])
+                 ORDER BY RANDOM()
+                 LIMIT $3`,
+                [userId, allSelectedIds, needed]
+            );
+        } else {
+            randomResult = await pool.query(
+                `SELECT q.id, q.min_time, q.max_time
+                 FROM questions q
+                 WHERE q.user_id = $1
+                 ORDER BY RANDOM()
+                 LIMIT $2`,
+                [userId, needed]
+            );
+        }
         remainingQuestions = [...remainingQuestions, ...randomResult.rows];
     }
 
-    // Combine and limit to totalCount
     const combined = [...priorityQuestions, ...remainingQuestions].slice(0, totalCount);
     return combined;
 };
