@@ -34,7 +34,7 @@ const LoginPage = () => {
         setSubmitting(true);
         try {
             const res = await API.post('/auth/login', form);
-            login(res.data.user, res.data.token);
+            login(res.data.user, res.data.token, form.rememberMe);
             navigate('/home');
         } catch (err) {
             setError(err.response?.data?.message || 'Login failed. Please try again.');
