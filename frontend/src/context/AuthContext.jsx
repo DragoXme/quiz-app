@@ -18,23 +18,38 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const savedToken = localStorage.getItem('token');
-        const savedUser = localStorage.getItem('user');
+        // Check both storages
+        const savedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const savedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+
         if (savedToken && savedUser && isTokenValid(savedToken)) {
             setToken(savedToken);
             setUser(JSON.parse(savedUser));
         } else {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('user');
         }
         setLoading(false);
     }, []);
 
-    const login = (userData, userToken) => {
+    const login = (userData, userToken, rememberMe = false) => {
         setUser(userData);
         setToken(userToken);
-        localStorage.setItem('token', userToken);
-        localStorage.setItem('user', JSON.stringify(userData));
+        if (rememberMe) {
+            // Persist across browser sessions
+            localStorage.setItem('token', userToken);
+            localStorage.setItem('user', JSON.stringify(userData));
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('user');
+        } else {
+            // Only for current browser session
+            sessionStorage.setItem('token', userToken);
+            sessionStorage.setItem('user', JSON.stringify(userData));
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+        }
     };
 
     const logout = () => {
@@ -42,11 +57,17 @@ export const AuthProvider = ({ children }) => {
         setToken(null);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
     };
 
     const updateUser = (userData) => {
         setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
+        if (localStorage.getItem('token')) {
+            localStorage.setItem('user', JSON.stringify(userData));
+        } else {
+            sessionStorage.setItem('user', JSON.stringify(userData));
+        }
     };
 
     return (

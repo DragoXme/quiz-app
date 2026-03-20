@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
-const { sendOTPEmail } = require('../config/email');
+const { sendSignupOTPEmail, sendPasswordResetEmail } = require('../config/email');
 const {
     createUser,
     findUserByEmail,
@@ -22,7 +22,6 @@ const generateToken = (user, rememberMe = false) => {
     );
 };
 
-// Step 1: Send OTP to email before signup
 const sendSignupOTP = async (req, res, next) => {
     try {
         const { username, email, password, confirmPassword, mobile } = req.body;
@@ -30,11 +29,9 @@ const sendSignupOTP = async (req, res, next) => {
         if (!username || !email || !password || !confirmPassword) {
             return res.status(400).json({ message: 'All fields are required.' });
         }
-
         if (password !== confirmPassword) {
             return res.status(400).json({ message: 'Passwords do not match.' });
         }
-
         if (password.length < 6) {
             return res.status(400).json({ message: 'Password must be at least 6 characters.' });
         }
@@ -52,7 +49,6 @@ const sendSignupOTP = async (req, res, next) => {
         const otp = generateOTP();
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-        // Invalidate any previous OTPs for this email
         await pool.query(
             `UPDATE otps SET used = TRUE WHERE email = $1 AND used = FALSE`,
             [email]
@@ -63,7 +59,7 @@ const sendSignupOTP = async (req, res, next) => {
             [email, otp, expiresAt]
         );
 
-        const emailResult = await sendOTPEmail(email, otp);
+        const emailResult = await sendSignupOTPEmail(email, otp);
         if (!emailResult.success) {
             return res.status(500).json({ message: 'Failed to send OTP email. Please try again.' });
         }
@@ -74,7 +70,6 @@ const sendSignupOTP = async (req, res, next) => {
     }
 };
 
-// Step 2: Verify OTP and create account
 const signup = async (req, res, next) => {
     try {
         const { username, email, password, confirmPassword, mobile, otp } = req.body;
@@ -82,16 +77,13 @@ const signup = async (req, res, next) => {
         if (!username || !email || !password || !confirmPassword || !otp) {
             return res.status(400).json({ message: 'All fields are required.' });
         }
-
         if (password !== confirmPassword) {
             return res.status(400).json({ message: 'Passwords do not match.' });
         }
-
         if (password.length < 6) {
             return res.status(400).json({ message: 'Password must be at least 6 characters.' });
         }
 
-        // Verify OTP
         const otpResult = await pool.query(
             `SELECT * FROM otps
              WHERE email = $1 AND otp_code = $2 AND used = FALSE AND expires_at > NOW()
@@ -103,7 +95,6 @@ const signup = async (req, res, next) => {
             return res.status(400).json({ message: 'Invalid or expired OTP.' });
         }
 
-        // Mark OTP as used
         await pool.query(
             `UPDATE otps SET used = TRUE WHERE id = $1`,
             [otpResult.rows[0].id]
@@ -199,7 +190,7 @@ const forgotPassword = async (req, res, next) => {
             [email, otp, expiresAt]
         );
 
-        const emailResult = await sendOTPEmail(email, otp);
+        const emailResult = await sendPasswordResetEmail(email, otp);
         if (!emailResult.success) {
             return res.status(500).json({ message: 'Failed to send OTP email. Please try again.' });
         }
@@ -256,11 +247,9 @@ const resetPassword = async (req, res, next) => {
         if (!resetToken || !newPassword || !confirmPassword) {
             return res.status(400).json({ message: 'All fields are required.' });
         }
-
         if (newPassword !== confirmPassword) {
             return res.status(400).json({ message: 'Passwords do not match.' });
         }
-
         if (newPassword.length < 6) {
             return res.status(400).json({ message: 'Password must be at least 6 characters.' });
         }
