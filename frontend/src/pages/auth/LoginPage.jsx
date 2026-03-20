@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import API from '../../api/axios';
 import useAuth from '../../hooks/useAuth';
 
 const LoginPage = () => {
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, user, loading: authLoading } = useAuth();
     const [form, setForm] = useState({
         username: '',
         password: '',
         rememberMe: false
     });
     const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+
+    if (!authLoading && user) {
+        return <Navigate to="/home" replace />;
+    }
 
     const handleChange = (e) => {
         const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -27,15 +31,15 @@ const LoginPage = () => {
             setError('Please enter username and password.');
             return;
         }
-        setLoading(true);
+        setSubmitting(true);
         try {
             const res = await API.post('/auth/login', form);
-            login(res.data.user, res.data.token, form.rememberMe);
+            login(res.data.user, res.data.token);
             navigate('/home');
         } catch (err) {
             setError(err.response?.data?.message || 'Login failed. Please try again.');
         } finally {
-            setLoading(false);
+            setSubmitting(false);
         }
     };
 
@@ -164,21 +168,21 @@ const LoginPage = () => {
 
                     <button
                         type="submit"
-                        disabled={loading}
+                        disabled={submitting}
                         style={{
                             width: '100%',
                             padding: '13px',
-                            backgroundColor: loading ? 'var(--text-muted)' : 'var(--accent)',
+                            backgroundColor: submitting ? 'var(--text-muted)' : 'var(--accent)',
                             color: '#fff',
                             border: 'none',
                             borderRadius: '8px',
                             fontSize: '15px',
                             fontWeight: '700',
-                            cursor: loading ? 'not-allowed' : 'pointer',
+                            cursor: submitting ? 'not-allowed' : 'pointer',
                             transition: 'background-color 0.2s'
                         }}
                     >
-                        {loading ? 'Logging in...' : 'Login'}
+                        {submitting ? 'Logging in...' : 'Login'}
                     </button>
                 </form>
 

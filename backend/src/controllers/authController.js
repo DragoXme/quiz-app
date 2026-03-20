@@ -1,6 +1,5 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { v4: uuidv4 } = require('uuid');
 const pool = require('../config/db');
 const { sendOTPEmail } = require('../config/email');
 const {
@@ -14,15 +13,17 @@ const generateOTP = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-const generateToken = (user) => {
+const generateToken = (user, rememberMe = false) => {
+    const expiresIn = rememberMe ? '30d' : '7d';
     return jwt.sign(
         { id: user.id, username: user.username, email: user.email },
         process.env.JWT_SECRET,
-        { expiresIn: '7d' }
+        { expiresIn }
     );
 };
 
-const signup = async (req, res, next) => {
+// Step 1: Send OTP to email before signup
+const sendSignupOTP = async (req, res, next) => {
     try {
         const { username, email, password, confirmPassword, mobile } = req.body;
 
@@ -37,6 +38,76 @@ const signup = async (req, res, next) => {
         if (password.length < 6) {
             return res.status(400).json({ message: 'Password must be at least 6 characters.' });
         }
+
+        const existingEmail = await findUserByEmail(email);
+        if (existingEmail) {
+            return res.status(409).json({ message: 'Email already registered.' });
+        }
+
+        const existingUsername = await findUserByUsername(username);
+        if (existingUsername) {
+            return res.status(409).json({ message: 'Username already taken.' });
+        }
+
+        const otp = generateOTP();
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+        // Invalidate any previous OTPs for this email
+        await pool.query(
+            `UPDATE otps SET used = TRUE WHERE email = $1 AND used = FALSE`,
+            [email]
+        );
+
+        await pool.query(
+            `INSERT INTO otps (email, otp_code, expires_at) VALUES ($1, $2, $3)`,
+            [email, otp, expiresAt]
+        );
+
+        const emailResult = await sendOTPEmail(email, otp);
+        if (!emailResult.success) {
+            return res.status(500).json({ message: 'Failed to send OTP email. Please try again.' });
+        }
+
+        res.status(200).json({ message: 'OTP sent to your email. Please verify to complete signup.' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Step 2: Verify OTP and create account
+const signup = async (req, res, next) => {
+    try {
+        const { username, email, password, confirmPassword, mobile, otp } = req.body;
+
+        if (!username || !email || !password || !confirmPassword || !otp) {
+            return res.status(400).json({ message: 'All fields are required.' });
+        }
+
+        if (password !== confirmPassword) {
+            return res.status(400).json({ message: 'Passwords do not match.' });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters.' });
+        }
+
+        // Verify OTP
+        const otpResult = await pool.query(
+            `SELECT * FROM otps
+             WHERE email = $1 AND otp_code = $2 AND used = FALSE AND expires_at > NOW()
+             ORDER BY created_at DESC LIMIT 1`,
+            [email, otp]
+        );
+
+        if (otpResult.rows.length === 0) {
+            return res.status(400).json({ message: 'Invalid or expired OTP.' });
+        }
+
+        // Mark OTP as used
+        await pool.query(
+            `UPDATE otps SET used = TRUE WHERE id = $1`,
+            [otpResult.rows[0].id]
+        );
 
         const existingEmail = await findUserByEmail(email);
         if (existingEmail) {
@@ -85,12 +156,7 @@ const login = async (req, res, next) => {
             return res.status(401).json({ message: 'Invalid username or password.' });
         }
 
-        const expiresIn = rememberMe ? '30d' : '7d';
-        const token = jwt.sign(
-            { id: user.id, username: user.username, email: user.email },
-            process.env.JWT_SECRET,
-            { expiresIn }
-        );
+        const token = generateToken(user, rememberMe);
 
         res.status(200).json({
             message: 'Login successful.',
@@ -220,6 +286,7 @@ const resetPassword = async (req, res, next) => {
 };
 
 module.exports = {
+    sendSignupOTP,
     signup,
     login,
     forgotPassword,

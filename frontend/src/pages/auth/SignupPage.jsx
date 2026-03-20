@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import API from '../../api/axios';
 import useAuth from '../../hooks/useAuth';
 
 const SignupPage = () => {
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, user, loading: authLoading } = useAuth();
+    const [step, setStep] = useState(1); // 1: form, 2: otp
     const [form, setForm] = useState({
         username: '',
         email: '',
@@ -13,17 +14,25 @@ const SignupPage = () => {
         password: '',
         confirmPassword: ''
     });
+    const [otp, setOtp] = useState('');
     const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+
+    if (!authLoading && user) {
+        return <Navigate to="/home" replace />;
+    }
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
         setError('');
     };
 
-    const handleSubmit = async (e) => {
+    const handleSendOTP = async (e) => {
         e.preventDefault();
         setError('');
+        setSuccess('');
+
         if (!form.username || !form.email || !form.password || !form.confirmPassword) {
             setError('Please fill in all required fields.');
             return;
@@ -36,15 +45,37 @@ const SignupPage = () => {
             setError('Password must be at least 6 characters.');
             return;
         }
-        setLoading(true);
+
+        setSubmitting(true);
         try {
-            const res = await API.post('/auth/signup', form);
+            await API.post('/auth/send-signup-otp', form);
+            setSuccess(`OTP sent to ${form.email}. Please check your inbox.`);
+            setStep(2);
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to send OTP. Please try again.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleVerifyAndSignup = async (e) => {
+        e.preventDefault();
+        setError('');
+
+        if (!otp) {
+            setError('Please enter the OTP.');
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            const res = await API.post('/auth/signup', { ...form, otp });
             login(res.data.user, res.data.token);
             navigate('/home');
         } catch (err) {
             setError(err.response?.data?.message || 'Signup failed. Please try again.');
         } finally {
-            setLoading(false);
+            setSubmitting(false);
         }
     };
 
@@ -69,6 +100,19 @@ const SignupPage = () => {
         marginBottom: '6px'
     };
 
+    const btnStyle = (disabled) => ({
+        width: '100%',
+        padding: '13px',
+        backgroundColor: disabled ? 'var(--text-muted)' : 'var(--accent)',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '8px',
+        fontSize: '15px',
+        fontWeight: '700',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        transition: 'background-color 0.2s'
+    });
+
     return (
         <div style={{
             minHeight: '100vh',
@@ -87,7 +131,24 @@ const SignupPage = () => {
                 boxShadow: `0 4px 24px var(--shadow)`,
                 border: '1px solid var(--border)'
             }}>
-                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                {/* Step Indicator */}
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '24px' }}>
+                    {[1, 2].map(s => (
+                        <div key={s} style={{
+                            width: '32px', height: '32px',
+                            borderRadius: '50%',
+                            backgroundColor: s <= step ? 'var(--accent)' : 'var(--border)',
+                            color: s <= step ? '#fff' : 'var(--text-muted)',
+                            display: 'flex', alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '13px', fontWeight: '700'
+                        }}>
+                            {s < step ? '✓' : s}
+                        </div>
+                    ))}
+                </div>
+
+                <div style={{ textAlign: 'center', marginBottom: '28px' }}>
                     <h1 style={{
                         fontSize: '28px',
                         fontWeight: '800',
@@ -97,7 +158,7 @@ const SignupPage = () => {
                         QuizApp
                     </h1>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-                        Create your account
+                        {step === 1 ? 'Create your account' : `Enter OTP sent to ${form.email}`}
                     </p>
                 </div>
 
@@ -115,76 +176,100 @@ const SignupPage = () => {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit}>
-                    <label style={labelStyle}>Username *</label>
-                    <input
-                        style={inputStyle}
-                        type="text"
-                        name="username"
-                        value={form.username}
-                        onChange={handleChange}
-                        placeholder="Enter username"
-                    />
+                {success && (
+                    <div style={{
+                        backgroundColor: 'var(--success-light)',
+                        color: 'var(--success)',
+                        padding: '12px 16px',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        marginBottom: '16px',
+                        border: '1px solid var(--success)'
+                    }}>
+                        {success}
+                    </div>
+                )}
 
-                    <label style={labelStyle}>Email *</label>
-                    <input
-                        style={inputStyle}
-                        type="email"
-                        name="email"
-                        value={form.email}
-                        onChange={handleChange}
-                        placeholder="Enter email"
-                    />
+                {/* Step 1 - Signup Form */}
+                {step === 1 && (
+                    <form onSubmit={handleSendOTP}>
+                        <label style={labelStyle}>Username *</label>
+                        <input style={inputStyle} type="text" name="username"
+                            value={form.username} onChange={handleChange}
+                            placeholder="Enter username" />
 
-                    <label style={labelStyle}>Mobile (optional)</label>
-                    <input
-                        style={inputStyle}
-                        type="tel"
-                        name="mobile"
-                        value={form.mobile}
-                        onChange={handleChange}
-                        placeholder="Enter mobile number"
-                    />
+                        <label style={labelStyle}>Email *</label>
+                        <input style={inputStyle} type="email" name="email"
+                            value={form.email} onChange={handleChange}
+                            placeholder="Enter email" />
 
-                    <label style={labelStyle}>Password *</label>
-                    <input
-                        style={inputStyle}
-                        type="password"
-                        name="password"
-                        value={form.password}
-                        onChange={handleChange}
-                        placeholder="Min 6 characters"
-                    />
+                        <label style={labelStyle}>Mobile (optional)</label>
+                        <input style={inputStyle} type="tel" name="mobile"
+                            value={form.mobile} onChange={handleChange}
+                            placeholder="Enter mobile number" />
 
-                    <label style={labelStyle}>Confirm Password *</label>
-                    <input
-                        style={inputStyle}
-                        type="password"
-                        name="confirmPassword"
-                        value={form.confirmPassword}
-                        onChange={handleChange}
-                        placeholder="Re-enter password"
-                    />
+                        <label style={labelStyle}>Password *</label>
+                        <input style={inputStyle} type="password" name="password"
+                            value={form.password} onChange={handleChange}
+                            placeholder="Min 6 characters" />
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        style={{
-                            width: '100%',
-                            padding: '13px',
-                            backgroundColor: loading ? 'var(--text-muted)' : 'var(--accent)',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontSize: '15px',
-                            fontWeight: '700',
-                            cursor: loading ? 'not-allowed' : 'pointer',
-                            transition: 'background-color 0.2s'
-                        }}
-                    >
-                        {loading ? 'Creating Account...' : 'Create Account'}
-                    </button>
-                </form>
+                        <label style={labelStyle}>Confirm Password *</label>
+                        <input style={inputStyle} type="password" name="confirmPassword"
+                            value={form.confirmPassword} onChange={handleChange}
+                            placeholder="Re-enter password" />
+
+                        <button type="submit" disabled={submitting} style={btnStyle(submitting)}>
+                            {submitting ? 'Sending OTP...' : 'Send Verification OTP'}
+                        </button>
+                    </form>
+                )}
+
+                {/* Step 2 - OTP Verification */}
+                {step === 2 && (
+                    <form onSubmit={handleVerifyAndSignup}>
+                        <label style={labelStyle}>Enter OTP</label>
+                        <input
+                            style={{
+                                ...inputStyle,
+                                textAlign: 'center',
+                                fontSize: '24px',
+                                letterSpacing: '8px',
+                                fontWeight: '700'
+                            }}
+                            type="text"
+                            value={otp}
+                            onChange={e => { setOtp(e.target.value); setError(''); }}
+                            placeholder="000000"
+                            maxLength={6}
+                        />
+
+                        <button type="submit" disabled={submitting}
+                            style={{ ...btnStyle(submitting), marginBottom: '12px' }}>
+                            {submitting ? 'Creating Account...' : 'Verify & Create Account'}
+                        </button>
+
+                        <button type="button" onClick={handleSendOTP} disabled={submitting}
+                            style={{
+                                ...btnStyle(submitting),
+                                backgroundColor: 'var(--bg-card)',
+                                color: 'var(--accent)',
+                                border: '1px solid var(--accent)'
+                            }}>
+                            Resend OTP
+                        </button>
+
+                        <button type="button" onClick={() => { setStep(1); setOtp(''); setError(''); setSuccess(''); }}
+                            style={{
+                                ...btnStyle(false),
+                                backgroundColor: 'var(--bg-card)',
+                                color: 'var(--text-secondary)',
+                                border: '1px solid var(--border)',
+                                marginTop: '8px'
+                            }}>
+                            ← Back to Form
+                        </button>
+                    </form>
+                )}
 
                 <p style={{
                     textAlign: 'center',

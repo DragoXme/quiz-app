@@ -13,7 +13,8 @@ const ProtectedRoute = ({ children }) => {
                 alignItems: 'center',
                 height: '100vh',
                 fontSize: '18px',
-                color: '#4F46E5'
+                color: 'var(--accent)',
+                backgroundColor: 'var(--bg-main)'
             }}>
                 Loading...
             </div>
