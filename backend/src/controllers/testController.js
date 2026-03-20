@@ -20,6 +20,7 @@ const pool = require('../config/db');
 const configureTest = async (req, res, next) => {
     try {
         const { totalQuestions, totalTime, tagIds } = req.body;
+        console.log('Configure test called with:', { totalQuestions, totalTime, tagIds });
 
         if (!totalQuestions || !totalTime) {
             return res.status(400).json({ message: 'Total questions and total time are required.' });
