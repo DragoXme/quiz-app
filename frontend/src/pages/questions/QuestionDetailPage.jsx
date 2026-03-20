@@ -53,7 +53,12 @@ const QuestionDetailPage = () => {
                 isCorrect: o.is_correct
             })) || [],
             fillAnswer: question.fillAnswer?.correct_answer || '',
-            tags: question.tags || [],
+            tags: question.tags?.filter(t =>
+                t.name !== 'starred' &&
+                t.name !== 'mcq single correct' &&
+                t.name !== 'mcq multiple correct' &&
+                t.name !== 'fill in the blank'
+            ) || [],
             isStarred: question.is_starred
         });
         setEditing(true);
@@ -220,7 +225,12 @@ const QuestionDetailPage = () => {
                     <div>
                         <span style={labelStyle}>Tags</span>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {question.tags?.map(tag => (
+                            {question.tags?.filter(t =>
+                                t.name !== 'starred' &&
+                                t.name !== 'mcq single correct' &&
+                                t.name !== 'mcq multiple correct' &&
+                                t.name !== 'fill in the blank'
+                            ).map(tag => (
                                 <span key={tag.id} style={{
                                     padding: '3px 10px', borderRadius: '12px',
                                     backgroundColor: 'var(--accent-light)', color: 'var(--accent-text)',

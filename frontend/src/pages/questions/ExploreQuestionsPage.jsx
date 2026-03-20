@@ -258,7 +258,12 @@ const ExploreQuestionsPage = () => {
                                 )}
 
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                    {q.tags?.map(tag => (
+                                    {q.tags?.filter(t =>
+                                        t.name !== 'starred' &&
+                                        t.name !== 'mcq single correct' &&
+                                        t.name !== 'mcq multiple correct' &&
+                                        t.name !== 'fill in the blank'
+                                    ).map(tag => (
                                         <span key={tag.id} style={{
                                             padding: '2px 6px', borderRadius: '10px',
                                             backgroundColor: 'var(--tag-bg)', color: 'var(--tag-text)',

@@ -106,7 +106,8 @@ const createQuestionHandler = async (req, res, next) => {
         }
 
         // Handle tags
-        const allTags = [...tags];
+        const autoTags = ['mcq single correct', 'mcq multiple correct', 'fill in the blank', 'starred'];
+        const allTags = [...tags.filter(t => !autoTags.includes(t.toLowerCase().trim()))];
 
         // Auto-add question type tag
         const typeTagMap = {
@@ -299,7 +300,8 @@ const updateQuestionHandler = async (req, res, next) => {
 
         // Update tags
         await removeAllTagsFromQuestion(req.params.id);
-        const allTags = [...tags];
+        const autoTags = ['mcq single correct', 'mcq multiple correct', 'fill in the blank', 'starred'];
+        const allTags = [...tags.filter(t => !autoTags.includes(t.toLowerCase().trim()))];
         const typeTagMap = {
             'mcq_single': 'mcq single correct',
             'mcq_multiple': 'mcq multiple correct',
