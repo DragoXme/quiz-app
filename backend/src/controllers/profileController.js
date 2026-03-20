@@ -3,7 +3,8 @@ const {
     findUserById,
     updateUserProfile,
     updateUserPassword,
-    findUserByUsername
+    findUserByUsername,
+    deleteUser
 } = require('../models/userModel');
 
 const getProfile = async (req, res, next) => {
@@ -83,8 +84,40 @@ const updatePassword = async (req, res, next) => {
     }
 };
 
+const deleteAccount = async (req, res, next) => {
+    try {
+        const { password } = req.body;
+
+        if (!password) {
+            return res.status(400).json({ message: 'Password is required to delete account.' });
+        }
+
+        const userResult = await pool.query(
+            `SELECT * FROM users WHERE id = $1`,
+            [req.user.id]
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        const user = userResult.rows[0];
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Incorrect password.' });
+        }
+
+        await deleteUser(req.user.id);
+
+        res.status(200).json({ message: 'Account deleted successfully.' });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getProfile,
     updateProfile,
-    updatePassword
+    updatePassword,
+    deleteAccount
 };

@@ -10,6 +10,11 @@ const ProfilePage = () => {
 
     const [editingProfile, setEditingProfile] = useState(false);
     const [editingPassword, setEditingPassword] = useState(false);
+    const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+    const [deletePassword, setDeletePassword] = useState('');
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
+    const [deleteAccountError, setDeleteAccountError] = useState('');
+    const [deletingAccount, setDeletingAccount] = useState(false);
 
     const [profileForm, setProfileForm] = useState({
         username: user?.username || '',
@@ -108,6 +113,28 @@ const ProfilePage = () => {
         }
     };
 
+    const handleDeleteAccount = async () => {
+        if (deleteConfirmText !== 'DELETE') {
+            setDeleteAccountError('Please type DELETE to confirm.');
+            return;
+        }
+        if (!deletePassword) {
+            setDeleteAccountError('Password is required.');
+            return;
+        }
+        setDeletingAccount(true);
+        try {
+            await API.delete('/profile/delete-account', {
+                data: { password: deletePassword }
+            });
+            logout();
+            navigate('/login');
+        } catch (err) {
+            setDeleteAccountError(err.response?.data?.message || 'Failed to delete account.');
+            setDeletingAccount(false);
+        }
+    };
+
     const editBtnStyle = {
         padding: '6px 16px',
         backgroundColor: 'var(--accent-light)',
@@ -147,10 +174,8 @@ const ProfilePage = () => {
             <div style={{ maxWidth: '600px', margin: '0 auto', padding: '40px 24px' }}>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
-                    <button
-                        onClick={() => navigate('/home')}
-                        style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}
-                    >
+                    <button onClick={() => navigate('/home')}
+                        style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
                         ←
                     </button>
                     <h1 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>
@@ -161,14 +186,10 @@ const ProfilePage = () => {
                 {/* Avatar */}
                 <div style={{ ...sectionStyle, textAlign: 'center' }}>
                     <div style={{
-                        width: '80px', height: '80px',
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--accent)',
-                        color: '#fff',
-                        display: 'flex', alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '32px', fontWeight: '700',
-                        margin: '0 auto 12px'
+                        width: '80px', height: '80px', borderRadius: '50%',
+                        backgroundColor: 'var(--accent)', color: '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '32px', fontWeight: '700', margin: '0 auto 12px'
                     }}>
                         {user?.username?.charAt(0).toUpperCase()}
                     </div>
@@ -181,14 +202,10 @@ const ProfilePage = () => {
                 {/* Profile Details */}
                 <div style={sectionStyle}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                            Profile Details
-                        </h3>
+                        <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>Profile Details</h3>
                         {!editingProfile && (
                             <button onClick={() => { setEditingProfile(true); setProfileError(''); setProfileSuccess(''); }}
-                                style={editBtnStyle}>
-                                Edit
-                            </button>
+                                style={editBtnStyle}>Edit</button>
                         )}
                     </div>
 
@@ -217,10 +234,11 @@ const ProfilePage = () => {
                                 <button onClick={handleProfileSave} disabled={loading} style={saveBtnStyle}>
                                     {loading ? 'Saving...' : 'Save'}
                                 </button>
-                                <button onClick={() => { setEditingProfile(false); setProfileForm({ username: user?.username || '', mobile: user?.mobile || '' }); setProfileError(''); }}
-                                    style={cancelBtnStyle}>
-                                    Cancel
-                                </button>
+                                <button onClick={() => {
+                                    setEditingProfile(false);
+                                    setProfileForm({ username: user?.username || '', mobile: user?.mobile || '' });
+                                    setProfileError('');
+                                }} style={cancelBtnStyle}>Cancel</button>
                             </div>
                         </div>
                     ) : (
@@ -242,14 +260,10 @@ const ProfilePage = () => {
                 {/* Change Password */}
                 <div style={sectionStyle}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                            Change Password
-                        </h3>
+                        <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>Change Password</h3>
                         {!editingPassword && (
                             <button onClick={() => { setEditingPassword(true); setPasswordError(''); setPasswordSuccess(''); }}
-                                style={editBtnStyle}>
-                                Change
-                            </button>
+                                style={editBtnStyle}>Change</button>
                         )}
                     </div>
 
@@ -282,10 +296,11 @@ const ProfilePage = () => {
                                 <button onClick={handlePasswordSave} disabled={loading} style={saveBtnStyle}>
                                     {loading ? 'Saving...' : 'Save'}
                                 </button>
-                                <button onClick={() => { setEditingPassword(false); setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' }); setPasswordError(''); }}
-                                    style={cancelBtnStyle}>
-                                    Cancel
-                                </button>
+                                <button onClick={() => {
+                                    setEditingPassword(false);
+                                    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                                    setPasswordError('');
+                                }} style={cancelBtnStyle}>Cancel</button>
                             </div>
                         </div>
                     ) : (
@@ -304,11 +319,99 @@ const ProfilePage = () => {
                         color: 'var(--error)',
                         border: '1px solid var(--error)',
                         borderRadius: '12px', fontSize: '15px',
-                        fontWeight: '700', cursor: 'pointer'
+                        fontWeight: '700', cursor: 'pointer',
+                        marginBottom: '12px'
                     }}
                 >
                     🚪 Logout
                 </button>
+
+                {/* Delete Account */}
+                {!showDeleteAccount ? (
+                    <button
+                        onClick={() => setShowDeleteAccount(true)}
+                        style={{
+                            width: '100%', padding: '14px',
+                            backgroundColor: 'transparent',
+                            color: 'var(--text-muted)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '12px', fontSize: '14px',
+                            fontWeight: '600', cursor: 'pointer'
+                        }}
+                    >
+                        🗑️ Delete Account
+                    </button>
+                ) : (
+                    <div style={{
+                        backgroundColor: 'var(--bg-card)',
+                        border: '2px solid var(--error)',
+                        borderRadius: '12px',
+                        padding: '20px'
+                    }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--error)', marginBottom: '8px' }}>
+                            ⚠️ Delete Account Permanently
+                        </h3>
+                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: '1.5' }}>
+                            This will permanently delete your account, all your questions, contest history and analytics. <strong>This cannot be undone.</strong>
+                        </p>
+
+                        {deleteAccountError && (
+                            <div style={{ backgroundColor: 'var(--error-light)', color: 'var(--error)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '12px' }}>
+                                {deleteAccountError}
+                            </div>
+                        )}
+
+                        <label style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>
+                            Enter your password to confirm:
+                        </label>
+                        <input
+                            type="password"
+                            value={deletePassword}
+                            onChange={e => { setDeletePassword(e.target.value); setDeleteAccountError(''); }}
+                            placeholder="Enter your password"
+                            style={{ ...inputStyle, marginBottom: '12px' }}
+                        />
+
+                        <label style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>
+                            Type <strong>DELETE</strong> to confirm:
+                        </label>
+                        <input
+                            type="text"
+                            value={deleteConfirmText}
+                            onChange={e => { setDeleteConfirmText(e.target.value); setDeleteAccountError(''); }}
+                            placeholder="Type DELETE here"
+                            style={{ ...inputStyle, marginBottom: '16px' }}
+                        />
+
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button
+                                onClick={handleDeleteAccount}
+                                disabled={deleteConfirmText !== 'DELETE' || !deletePassword || deletingAccount}
+                                style={{
+                                    flex: 1, padding: '12px',
+                                    backgroundColor: deleteConfirmText === 'DELETE' && deletePassword ? 'var(--error)' : 'var(--text-muted)',
+                                    color: '#fff', border: 'none',
+                                    borderRadius: '8px', fontSize: '14px',
+                                    fontWeight: '700',
+                                    cursor: deleteConfirmText === 'DELETE' && deletePassword ? 'pointer' : 'not-allowed'
+                                }}
+                            >
+                                {deletingAccount ? 'Deleting...' : 'Delete My Account'}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowDeleteAccount(false);
+                                    setDeletePassword('');
+                                    setDeleteConfirmText('');
+                                    setDeleteAccountError('');
+                                }}
+                                style={cancelBtnStyle}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
