@@ -48,7 +48,7 @@ const ImageUpload = ({ label, imageUrl, onImageChange, onClear }) => {
                             maxWidth: '100%',
                             maxHeight: '300px',
                             borderRadius: '8px',
-                            border: '1px solid #ddd',
+                            border: '1px solid var(--border)',
                             display: 'block'
                         }}
                     />
@@ -58,7 +58,7 @@ const ImageUpload = ({ label, imageUrl, onImageChange, onClear }) => {
                             position: 'absolute',
                             top: '8px',
                             right: '8px',
-                            backgroundColor: '#EF4444',
+                            backgroundColor: 'var(--error)',
                             color: '#fff',
                             border: 'none',
                             borderRadius: '50%',
@@ -81,15 +81,15 @@ const ImageUpload = ({ label, imageUrl, onImageChange, onClear }) => {
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     style={{
-                        border: `2px dashed ${dragOver ? '#4F46E5' : '#ddd'}`,
+                        border: `2px dashed ${dragOver ? 'var(--accent)' : 'var(--border)'}`,
                         borderRadius: '8px',
                         padding: '24px',
                         textAlign: 'center',
-                        backgroundColor: dragOver ? '#EEF2FF' : '#fafafa',
+                        backgroundColor: dragOver ? 'var(--accent-light)' : 'var(--bg-hover)',
                         transition: 'all 0.2s'
                     }}
                 >
-                    <p style={{ color: '#666', fontSize: '14px', marginBottom: '12px' }}>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '12px' }}>
                         Drag & drop an image or
                     </p>
                     <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -98,7 +98,7 @@ const ImageUpload = ({ label, imageUrl, onImageChange, onClear }) => {
                             onClick={() => fileInputRef.current.click()}
                             style={{
                                 padding: '8px 16px',
-                                backgroundColor: '#4F46E5',
+                                backgroundColor: 'var(--accent)',
                                 color: '#fff',
                                 border: 'none',
                                 borderRadius: '6px',
@@ -114,7 +114,7 @@ const ImageUpload = ({ label, imageUrl, onImageChange, onClear }) => {
                             onClick={() => cameraInputRef.current.click()}
                             style={{
                                 padding: '8px 16px',
-                                backgroundColor: '#10B981',
+                                backgroundColor: 'var(--success)',
                                 color: '#fff',
                                 border: 'none',
                                 borderRadius: '6px',

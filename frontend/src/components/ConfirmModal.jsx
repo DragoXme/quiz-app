@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = 'Confirm', cancelText = 'Cancel', confirmColor = '#EF4444' }) => {
+const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = 'Confirm', cancelText = 'Cancel', confirmColor = 'var(--error)' }) => {
     if (!isOpen) return null;
 
     return (
@@ -14,24 +14,25 @@ const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText
             zIndex: 1000
         }}>
             <div style={{
-                backgroundColor: '#fff',
+                backgroundColor: 'var(--bg-card)',
                 borderRadius: '12px',
                 padding: '32px',
                 maxWidth: '400px',
                 width: '90%',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+                boxShadow: `0 20px 60px var(--shadow-md)`,
+                border: '1px solid var(--border)'
             }}>
                 <h3 style={{
                     fontSize: '18px',
                     fontWeight: '700',
-                    color: '#111',
+                    color: 'var(--text-primary)',
                     marginBottom: '12px'
                 }}>
                     {title}
                 </h3>
                 <p style={{
                     fontSize: '14px',
-                    color: '#666',
+                    color: 'var(--text-secondary)',
                     marginBottom: '24px',
                     lineHeight: '1.5'
                 }}>
@@ -47,9 +48,9 @@ const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText
                         style={{
                             padding: '10px 20px',
                             borderRadius: '8px',
-                            border: '1px solid #ddd',
-                            backgroundColor: '#fff',
-                            color: '#333',
+                            border: '1px solid var(--border)',
+                            backgroundColor: 'var(--bg-card)',
+                            color: 'var(--text-primary)',
                             fontSize: '14px',
                             fontWeight: '600',
                             cursor: 'pointer'

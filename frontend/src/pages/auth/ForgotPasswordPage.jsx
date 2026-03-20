@@ -4,7 +4,7 @@ import API from '../../api/axios';
 
 const ForgotPasswordPage = () => {
     const navigate = useNavigate();
-    const [step, setStep] = useState(1); // 1: email, 2: otp, 3: new password
+    const [step, setStep] = useState(1);
     const [email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
     const [resetToken, setResetToken] = useState('');
@@ -18,20 +18,27 @@ const ForgotPasswordPage = () => {
         width: '100%',
         padding: '12px 14px',
         borderRadius: '8px',
-        border: '1px solid #ddd',
+        border: '1px solid var(--input-border)',
         fontSize: '14px',
         outline: 'none',
         boxSizing: 'border-box',
-        marginBottom: '16px'
+        marginBottom: '16px',
+        backgroundColor: 'var(--bg-input)',
+        color: 'var(--text-primary)'
+    };
+
+    const labelStyle = {
+        fontSize: '13px',
+        fontWeight: '600',
+        color: 'var(--text-primary)',
+        display: 'block',
+        marginBottom: '6px'
     };
 
     const handleSendOTP = async (e) => {
         e.preventDefault();
         setError('');
-        if (!email) {
-            setError('Please enter your email.');
-            return;
-        }
+        if (!email) { setError('Please enter your email.'); return; }
         setLoading(true);
         try {
             await API.post('/auth/forgot-password', { email });
@@ -47,10 +54,7 @@ const ForgotPasswordPage = () => {
     const handleVerifyOTP = async (e) => {
         e.preventDefault();
         setError('');
-        if (!otp) {
-            setError('Please enter the OTP.');
-            return;
-        }
+        if (!otp) { setError('Please enter the OTP.'); return; }
         setLoading(true);
         try {
             const res = await API.post('/auth/verify-otp', { email, otp });
@@ -67,25 +71,12 @@ const ForgotPasswordPage = () => {
     const handleResetPassword = async (e) => {
         e.preventDefault();
         setError('');
-        if (!newPassword || !confirmPassword) {
-            setError('Please fill in all fields.');
-            return;
-        }
-        if (newPassword !== confirmPassword) {
-            setError('Passwords do not match.');
-            return;
-        }
-        if (newPassword.length < 6) {
-            setError('Password must be at least 6 characters.');
-            return;
-        }
+        if (!newPassword || !confirmPassword) { setError('Please fill in all fields.'); return; }
+        if (newPassword !== confirmPassword) { setError('Passwords do not match.'); return; }
+        if (newPassword.length < 6) { setError('Password must be at least 6 characters.'); return; }
         setLoading(true);
         try {
-            await API.post('/auth/reset-password', {
-                resetToken,
-                newPassword,
-                confirmPassword
-            });
+            await API.post('/auth/reset-password', { resetToken, newPassword, confirmPassword });
             setSuccess('Password reset successfully!');
             setTimeout(() => navigate('/login'), 2000);
         } catch (err) {
@@ -95,56 +86,55 @@ const ForgotPasswordPage = () => {
         }
     };
 
-    const cardStyle = {
-        backgroundColor: '#fff',
-        borderRadius: '16px',
-        padding: '40px',
-        width: '100%',
-        maxWidth: '440px',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.08)'
-    };
-
-    const stepTitles = {
-        1: 'Forgot Password',
-        2: 'Enter OTP',
-        3: 'Set New Password'
-    };
-
+    const stepTitles = { 1: 'Forgot Password', 2: 'Enter OTP', 3: 'Set New Password' };
     const stepDescriptions = {
         1: 'Enter your email to receive an OTP.',
         2: `Enter the 6-digit OTP sent to ${email}`,
         3: 'Enter and confirm your new password.'
     };
 
+    const btnStyle = (disabled) => ({
+        width: '100%',
+        padding: '13px',
+        backgroundColor: disabled ? 'var(--text-muted)' : 'var(--accent)',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '8px',
+        fontSize: '15px',
+        fontWeight: '700',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        marginBottom: '12px'
+    });
+
     return (
         <div style={{
             minHeight: '100vh',
-            backgroundColor: '#f5f5f5',
+            backgroundColor: 'var(--bg-main)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: '24px'
         }}>
-            <div style={cardStyle}>
-                {/* Step indicator */}
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    marginBottom: '24px'
-                }}>
+            <div style={{
+                backgroundColor: 'var(--bg-card)',
+                borderRadius: '16px',
+                padding: '40px',
+                width: '100%',
+                maxWidth: '440px',
+                boxShadow: `0 4px 24px var(--shadow)`,
+                border: '1px solid var(--border)'
+            }}>
+                {/* Step Indicator */}
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '24px' }}>
                     {[1, 2, 3].map(s => (
                         <div key={s} style={{
-                            width: '32px',
-                            height: '32px',
+                            width: '32px', height: '32px',
                             borderRadius: '50%',
-                            backgroundColor: s <= step ? '#4F46E5' : '#e5e7eb',
-                            color: s <= step ? '#fff' : '#999',
-                            display: 'flex',
-                            alignItems: 'center',
+                            backgroundColor: s <= step ? 'var(--accent)' : 'var(--border)',
+                            color: s <= step ? '#fff' : 'var(--text-muted)',
+                            display: 'flex', alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '13px',
-                            fontWeight: '700'
+                            fontSize: '13px', fontWeight: '700'
                         }}>
                             {s < step ? '✓' : s}
                         </div>
@@ -152,28 +142,20 @@ const ForgotPasswordPage = () => {
                 </div>
 
                 <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-                    <h2 style={{
-                        fontSize: '22px',
-                        fontWeight: '800',
-                        color: '#111',
-                        marginBottom: '8px'
-                    }}>
+                    <h2 style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '8px' }}>
                         {stepTitles[step]}
                     </h2>
-                    <p style={{ color: '#666', fontSize: '14px' }}>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
                         {stepDescriptions[step]}
                     </p>
                 </div>
 
                 {error && (
                     <div style={{
-                        backgroundColor: '#FEF2F2',
-                        color: '#EF4444',
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        marginBottom: '16px',
-                        border: '1px solid #FECACA'
+                        backgroundColor: 'var(--error-light)', color: 'var(--error)',
+                        padding: '12px 16px', borderRadius: '8px',
+                        fontSize: '14px', marginBottom: '16px',
+                        border: '1px solid var(--error)'
                     }}>
                         {error}
                     </div>
@@ -181,30 +163,19 @@ const ForgotPasswordPage = () => {
 
                 {success && (
                     <div style={{
-                        backgroundColor: '#F0FDF4',
-                        color: '#10B981',
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        marginBottom: '16px',
-                        border: '1px solid #A7F3D0'
+                        backgroundColor: 'var(--success-light)', color: 'var(--success)',
+                        padding: '12px 16px', borderRadius: '8px',
+                        fontSize: '14px', marginBottom: '16px',
+                        border: '1px solid var(--success)'
                     }}>
                         {success}
                     </div>
                 )}
 
-                {/* Step 1: Email */}
+                {/* Step 1 */}
                 {step === 1 && (
                     <form onSubmit={handleSendOTP}>
-                        <label style={{
-                            fontSize: '13px',
-                            fontWeight: '600',
-                            color: '#333',
-                            display: 'block',
-                            marginBottom: '6px'
-                        }}>
-                            Email Address
-                        </label>
+                        <label style={labelStyle}>Email Address</label>
                         <input
                             style={inputStyle}
                             type="email"
@@ -212,38 +183,16 @@ const ForgotPasswordPage = () => {
                             onChange={e => { setEmail(e.target.value); setError(''); }}
                             placeholder="Enter your registered email"
                         />
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            style={{
-                                width: '100%',
-                                padding: '13px',
-                                backgroundColor: loading ? '#a5b4fc' : '#4F46E5',
-                                color: '#fff',
-                                border: 'none',
-                                borderRadius: '8px',
-                                fontSize: '15px',
-                                fontWeight: '700',
-                                cursor: loading ? 'not-allowed' : 'pointer'
-                            }}
-                        >
+                        <button type="submit" disabled={loading} style={btnStyle(loading)}>
                             {loading ? 'Sending OTP...' : 'Send OTP'}
                         </button>
                     </form>
                 )}
 
-                {/* Step 2: OTP */}
+                {/* Step 2 */}
                 {step === 2 && (
                     <form onSubmit={handleVerifyOTP}>
-                        <label style={{
-                            fontSize: '13px',
-                            fontWeight: '600',
-                            color: '#333',
-                            display: 'block',
-                            marginBottom: '6px'
-                        }}>
-                            Enter OTP
-                        </label>
+                        <label style={labelStyle}>Enter OTP</label>
                         <input
                             style={{
                                 ...inputStyle,
@@ -258,22 +207,7 @@ const ForgotPasswordPage = () => {
                             placeholder="000000"
                             maxLength={6}
                         />
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            style={{
-                                width: '100%',
-                                padding: '13px',
-                                backgroundColor: loading ? '#a5b4fc' : '#4F46E5',
-                                color: '#fff',
-                                border: 'none',
-                                borderRadius: '8px',
-                                fontSize: '15px',
-                                fontWeight: '700',
-                                cursor: loading ? 'not-allowed' : 'pointer',
-                                marginBottom: '12px'
-                            }}
-                        >
+                        <button type="submit" disabled={loading} style={btnStyle(loading)}>
                             {loading ? 'Verifying...' : 'Verify OTP'}
                         </button>
                         <button
@@ -281,15 +215,10 @@ const ForgotPasswordPage = () => {
                             onClick={handleSendOTP}
                             disabled={loading}
                             style={{
-                                width: '100%',
-                                padding: '13px',
-                                backgroundColor: '#fff',
-                                color: '#4F46E5',
-                                border: '1px solid #4F46E5',
-                                borderRadius: '8px',
-                                fontSize: '15px',
-                                fontWeight: '700',
-                                cursor: loading ? 'not-allowed' : 'pointer'
+                                ...btnStyle(loading),
+                                backgroundColor: 'var(--bg-card)',
+                                color: 'var(--accent)',
+                                border: '1px solid var(--accent)'
                             }}
                         >
                             Resend OTP
@@ -297,18 +226,10 @@ const ForgotPasswordPage = () => {
                     </form>
                 )}
 
-                {/* Step 3: New Password */}
+                {/* Step 3 */}
                 {step === 3 && (
                     <form onSubmit={handleResetPassword}>
-                        <label style={{
-                            fontSize: '13px',
-                            fontWeight: '600',
-                            color: '#333',
-                            display: 'block',
-                            marginBottom: '6px'
-                        }}>
-                            New Password
-                        </label>
+                        <label style={labelStyle}>New Password</label>
                         <input
                             style={inputStyle}
                             type="password"
@@ -316,15 +237,7 @@ const ForgotPasswordPage = () => {
                             onChange={e => { setNewPassword(e.target.value); setError(''); }}
                             placeholder="Min 6 characters"
                         />
-                        <label style={{
-                            fontSize: '13px',
-                            fontWeight: '600',
-                            color: '#333',
-                            display: 'block',
-                            marginBottom: '6px'
-                        }}>
-                            Confirm New Password
-                        </label>
+                        <label style={labelStyle}>Confirm New Password</label>
                         <input
                             style={inputStyle}
                             type="password"
@@ -332,33 +245,14 @@ const ForgotPasswordPage = () => {
                             onChange={e => { setConfirmPassword(e.target.value); setError(''); }}
                             placeholder="Re-enter new password"
                         />
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            style={{
-                                width: '100%',
-                                padding: '13px',
-                                backgroundColor: loading ? '#a5b4fc' : '#4F46E5',
-                                color: '#fff',
-                                border: 'none',
-                                borderRadius: '8px',
-                                fontSize: '15px',
-                                fontWeight: '700',
-                                cursor: loading ? 'not-allowed' : 'pointer'
-                            }}
-                        >
+                        <button type="submit" disabled={loading} style={btnStyle(loading)}>
                             {loading ? 'Resetting...' : 'Reset Password'}
                         </button>
                     </form>
                 )}
 
-                <p style={{
-                    textAlign: 'center',
-                    marginTop: '24px',
-                    fontSize: '14px',
-                    color: '#666'
-                }}>
-                    <Link to="/login" style={{ color: '#4F46E5', fontWeight: '600' }}>
+                <p style={{ textAlign: 'center', marginTop: '24px', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                    <Link to="/login" style={{ color: 'var(--accent)', fontWeight: '600' }}>
                         ← Back to Login
                     </Link>
                 </p>

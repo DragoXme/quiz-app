@@ -52,42 +52,18 @@ const CreateQuestionPage = () => {
     const handleSubmit = async () => {
         setError('');
         setSuccess('');
-
-        if (!questionType) {
-            setError('Please select a question type.');
-            return;
-        }
-
-        if (!questionText && !questionImageUrl) {
-            setError('Please enter question text or upload an image.');
-            return;
-        }
-
-        if (tags.length === 0) {
-            setError('Please add at least one tag.');
-            return;
-        }
-
+        if (!questionType) { setError('Please select a question type.'); return; }
+        if (!questionText && !questionImageUrl) { setError('Please enter question text or upload an image.'); return; }
+        if (tags.length === 0) { setError('Please add at least one tag.'); return; }
         if (questionType === 'mcq_single') {
             const correct = options.filter(o => o.isCorrect);
-            if (correct.length !== 1) {
-                setError('Please select exactly 1 correct answer or change the question type.');
-                return;
-            }
+            if (correct.length !== 1) { setError('Please select exactly 1 correct answer or change the question type.'); return; }
         }
-
         if (questionType === 'mcq_multiple') {
             const correct = options.filter(o => o.isCorrect);
-            if (correct.length < 1) {
-                setError('Please select at least 1 correct answer.');
-                return;
-            }
+            if (correct.length < 1) { setError('Please select at least 1 correct answer.'); return; }
         }
-
-        if (questionType === 'fill_blank' && !fillAnswer.trim()) {
-            setError('Please enter the correct answer.');
-            return;
-        }
+        if (questionType === 'fill_blank' && !fillAnswer.trim()) { setError('Please enter the correct answer.'); return; }
 
         setLoading(true);
         try {
@@ -112,17 +88,18 @@ const CreateQuestionPage = () => {
     };
 
     const sectionStyle = {
-        backgroundColor: '#fff',
+        backgroundColor: 'var(--bg-card)',
         borderRadius: '12px',
         padding: '24px',
         marginBottom: '20px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+        boxShadow: `0 2px 8px var(--shadow)`,
+        border: '1px solid var(--border)'
     };
 
     const labelStyle = {
         fontSize: '14px',
         fontWeight: '700',
-        color: '#333',
+        color: 'var(--text-primary)',
         display: 'block',
         marginBottom: '10px'
     };
@@ -131,47 +108,48 @@ const CreateQuestionPage = () => {
         padding: '8px 20px',
         borderRadius: '8px',
         border: 'none',
-        backgroundColor: active ? '#4F46E5' : '#f0f0f0',
-        color: active ? '#fff' : '#666',
+        backgroundColor: active ? 'var(--accent)' : 'var(--bg-hover)',
+        color: active ? '#fff' : 'var(--text-secondary)',
         fontSize: '13px',
         fontWeight: '600',
         cursor: 'pointer'
     });
 
+    const inputStyle = {
+        width: '100%',
+        padding: '11px 14px',
+        borderRadius: '8px',
+        border: '1px solid var(--input-border)',
+        fontSize: '14px',
+        outline: 'none',
+        boxSizing: 'border-box',
+        backgroundColor: 'var(--bg-input)',
+        color: 'var(--text-primary)'
+    };
+
     return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+        <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
             <Navbar />
             <div style={{ maxWidth: '760px', margin: '0 auto', padding: '32px 24px' }}>
 
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
-                    <button
-                        onClick={() => navigate('/home')}
-                        style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#666' }}
-                    >
+                    <button onClick={() => navigate('/home')}
+                        style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
                         ←
                     </button>
-                    <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#111' }}>
+                    <h1 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>
                         Create Question
                     </h1>
                 </div>
 
                 {error && (
-                    <div style={{
-                        backgroundColor: '#FEF2F2', color: '#EF4444',
-                        padding: '12px 16px', borderRadius: '8px',
-                        fontSize: '14px', marginBottom: '16px', border: '1px solid #FECACA'
-                    }}>
+                    <div style={{ backgroundColor: 'var(--error-light)', color: 'var(--error)', padding: '12px 16px', borderRadius: '8px', fontSize: '14px', marginBottom: '16px', border: '1px solid var(--error)' }}>
                         {error}
                     </div>
                 )}
-
                 {success && (
-                    <div style={{
-                        backgroundColor: '#F0FDF4', color: '#10B981',
-                        padding: '12px 16px', borderRadius: '8px',
-                        fontSize: '14px', marginBottom: '16px', border: '1px solid #A7F3D0'
-                    }}>
+                    <div style={{ backgroundColor: 'var(--success-light)', color: 'var(--success)', padding: '12px 16px', borderRadius: '8px', fontSize: '14px', marginBottom: '16px', border: '1px solid var(--success)' }}>
                         {success}
                     </div>
                 )}
@@ -181,16 +159,13 @@ const CreateQuestionPage = () => {
                     <label style={labelStyle}>Question Type *</label>
                     <select
                         value={questionType}
-                        onChange={e => {
-                            setQuestionType(e.target.value);
-                            setOptions(defaultOptions());
-                            setError('');
-                        }}
+                        onChange={e => { setQuestionType(e.target.value); setOptions(defaultOptions()); setError(''); }}
                         style={{
                             width: '100%', padding: '11px 14px',
-                            borderRadius: '8px', border: '1px solid #ddd',
+                            borderRadius: '8px', border: '1px solid var(--input-border)',
                             fontSize: '14px', outline: 'none',
-                            backgroundColor: '#fff', cursor: 'pointer'
+                            backgroundColor: 'var(--bg-input)',
+                            color: 'var(--text-primary)', cursor: 'pointer'
                         }}
                     >
                         <option value="">-- Select Question Type --</option>
@@ -206,12 +181,8 @@ const CreateQuestionPage = () => {
                         <div style={sectionStyle}>
                             <label style={labelStyle}>Question *</label>
                             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                                <button style={tabStyle(questionInputType === 'text')} onClick={() => setQuestionInputType('text')}>
-                                    ✏️ Write
-                                </button>
-                                <button style={tabStyle(questionInputType === 'image')} onClick={() => setQuestionInputType('image')}>
-                                    📷 Upload Image
-                                </button>
+                                <button style={tabStyle(questionInputType === 'text')} onClick={() => setQuestionInputType('text')}>✏️ Write</button>
+                                <button style={tabStyle(questionInputType === 'image')} onClick={() => setQuestionInputType('image')}>📷 Upload Image</button>
                             </div>
                             {questionInputType === 'text' ? (
                                 <textarea
@@ -221,19 +192,17 @@ const CreateQuestionPage = () => {
                                     rows={4}
                                     style={{
                                         width: '100%', padding: '12px 14px',
-                                        borderRadius: '8px', border: '1px solid #ddd',
+                                        borderRadius: '8px', border: '1px solid var(--input-border)',
                                         fontSize: '14px', outline: 'none',
                                         resize: 'vertical', boxSizing: 'border-box',
-                                        fontFamily: 'inherit'
+                                        fontFamily: 'inherit',
+                                        backgroundColor: 'var(--bg-input)',
+                                        color: 'var(--text-primary)'
                                     }}
                                 />
                             ) : (
-                                <ImageUpload
-                                    label="Question Image"
-                                    imageUrl={questionImageUrl}
-                                    onImageChange={setQuestionImageUrl}
-                                    onClear={() => setQuestionImageUrl(null)}
-                                />
+                                <ImageUpload label="Question Image" imageUrl={questionImageUrl}
+                                    onImageChange={setQuestionImageUrl} onClear={() => setQuestionImageUrl(null)} />
                             )}
                         </div>
 
@@ -241,30 +210,18 @@ const CreateQuestionPage = () => {
                         {(questionType === 'mcq_single' || questionType === 'mcq_multiple') && (
                             <div style={sectionStyle}>
                                 <label style={labelStyle}>Options *</label>
-                                <OptionsList
-                                    options={options}
-                                    onChange={setOptions}
-                                    allowMultiple={questionType === 'mcq_multiple'}
-                                />
+                                <OptionsList options={options} onChange={setOptions} allowMultiple={questionType === 'mcq_multiple'} />
                             </div>
                         )}
 
-                        {/* Fill in blank answer */}
+                        {/* Fill in blank */}
                         {questionType === 'fill_blank' && (
                             <div style={sectionStyle}>
                                 <label style={labelStyle}>Correct Answer *</label>
-                                <input
-                                    type="text"
-                                    value={fillAnswer}
+                                <input type="text" value={fillAnswer}
                                     onChange={e => setFillAnswer(e.target.value)}
                                     placeholder="Enter the correct answer"
-                                    style={{
-                                        width: '100%', padding: '11px 14px',
-                                        borderRadius: '8px', border: '1px solid #ddd',
-                                        fontSize: '14px', outline: 'none',
-                                        boxSizing: 'border-box'
-                                    }}
-                                />
+                                    style={inputStyle} />
                             </div>
                         )}
 
@@ -272,12 +229,8 @@ const CreateQuestionPage = () => {
                         <div style={sectionStyle}>
                             <label style={labelStyle}>Solution (Optional)</label>
                             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                                <button style={tabStyle(solutionInputType === 'text')} onClick={() => setSolutionInputType('text')}>
-                                    ✏️ Write
-                                </button>
-                                <button style={tabStyle(solutionInputType === 'image')} onClick={() => setSolutionInputType('image')}>
-                                    📷 Upload Image
-                                </button>
+                                <button style={tabStyle(solutionInputType === 'text')} onClick={() => setSolutionInputType('text')}>✏️ Write</button>
+                                <button style={tabStyle(solutionInputType === 'image')} onClick={() => setSolutionInputType('image')}>📷 Upload Image</button>
                             </div>
                             {solutionInputType === 'text' ? (
                                 <textarea
@@ -287,19 +240,17 @@ const CreateQuestionPage = () => {
                                     rows={3}
                                     style={{
                                         width: '100%', padding: '12px 14px',
-                                        borderRadius: '8px', border: '1px solid #ddd',
+                                        borderRadius: '8px', border: '1px solid var(--input-border)',
                                         fontSize: '14px', outline: 'none',
                                         resize: 'vertical', boxSizing: 'border-box',
-                                        fontFamily: 'inherit'
+                                        fontFamily: 'inherit',
+                                        backgroundColor: 'var(--bg-input)',
+                                        color: 'var(--text-primary)'
                                     }}
                                 />
                             ) : (
-                                <ImageUpload
-                                    label="Solution Image"
-                                    imageUrl={solutionImageUrl}
-                                    onImageChange={setSolutionImageUrl}
-                                    onClear={() => setSolutionImageUrl(null)}
-                                />
+                                <ImageUpload label="Solution Image" imageUrl={solutionImageUrl}
+                                    onImageChange={setSolutionImageUrl} onClear={() => setSolutionImageUrl(null)} />
                             )}
                         </div>
 
@@ -311,17 +262,11 @@ const CreateQuestionPage = () => {
 
                         {/* Starred */}
                         <div style={sectionStyle}>
-                            <label style={{
-                                display: 'flex', alignItems: 'center',
-                                gap: '12px', cursor: 'pointer'
-                            }}>
-                                <input
-                                    type="checkbox"
-                                    checked={isStarred}
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                                <input type="checkbox" checked={isStarred}
                                     onChange={e => setIsStarred(e.target.checked)}
-                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                                />
-                                <span style={{ fontSize: '15px', fontWeight: '600', color: '#333' }}>
+                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                                <span style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>
                                     ⭐ Star this question
                                 </span>
                             </label>
@@ -329,32 +274,23 @@ const CreateQuestionPage = () => {
 
                         {/* Action Buttons */}
                         <div style={{ display: 'flex', gap: '12px' }}>
-                            <button
-                                onClick={handleSubmit}
-                                disabled={loading}
-                                style={{
-                                    flex: 1, padding: '14px',
-                                    backgroundColor: loading ? '#a5b4fc' : '#4F46E5',
-                                    color: '#fff', border: 'none',
-                                    borderRadius: '10px', fontSize: '15px',
-                                    fontWeight: '700', cursor: loading ? 'not-allowed' : 'pointer'
-                                }}
-                            >
+                            <button onClick={handleSubmit} disabled={loading} style={{
+                                flex: 1, padding: '14px',
+                                backgroundColor: loading ? 'var(--text-muted)' : 'var(--accent)',
+                                color: '#fff', border: 'none',
+                                borderRadius: '10px', fontSize: '15px',
+                                fontWeight: '700', cursor: loading ? 'not-allowed' : 'pointer'
+                            }}>
                                 {loading ? 'Saving...' : '💾 Save Question'}
                             </button>
-                            <button
-                                onClick={() => setShowClearModal(true)}
-                                style={{
-                                    padding: '14px 24px',
-                                    backgroundColor: '#fff',
-                                    color: '#EF4444',
-                                    border: '1px solid #FECACA',
-                                    borderRadius: '10px',
-                                    fontSize: '15px',
-                                    fontWeight: '700',
-                                    cursor: 'pointer'
-                                }}
-                            >
+                            <button onClick={() => setShowClearModal(true)} style={{
+                                padding: '14px 24px',
+                                backgroundColor: 'var(--error-light)',
+                                color: 'var(--error)',
+                                border: '1px solid var(--error)',
+                                borderRadius: '10px', fontSize: '15px',
+                                fontWeight: '700', cursor: 'pointer'
+                            }}>
                                 🗑️ Clear
                             </button>
                         </div>

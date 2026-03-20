@@ -20,12 +20,9 @@ const QuestionDetailPage = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState('');
-
     const [editForm, setEditForm] = useState(null);
 
-    useEffect(() => {
-        fetchQuestion();
-    }, [id]);
+    useEffect(() => { fetchQuestion(); }, [id]);
 
     const fetchQuestion = async () => {
         setLoading(true);
@@ -63,32 +60,17 @@ const QuestionDetailPage = () => {
 
     const handleSave = async () => {
         setSaveError('');
-        if (!editForm.questionText && !editForm.questionImageUrl) {
-            setSaveError('Question text or image is required.');
-            return;
-        }
-        if (editForm.tags.length === 0) {
-            setSaveError('At least one tag is required.');
-            return;
-        }
+        if (!editForm.questionText && !editForm.questionImageUrl) { setSaveError('Question text or image is required.'); return; }
+        if (editForm.tags.length === 0) { setSaveError('At least one tag is required.'); return; }
         if (editForm.type === 'mcq_single') {
             const correct = editForm.options.filter(o => o.isCorrect);
-            if (correct.length !== 1) {
-                setSaveError('Please select exactly 1 correct answer.');
-                return;
-            }
+            if (correct.length !== 1) { setSaveError('Please select exactly 1 correct answer.'); return; }
         }
         if (editForm.type === 'mcq_multiple') {
             const correct = editForm.options.filter(o => o.isCorrect);
-            if (correct.length < 1) {
-                setSaveError('Please select at least 1 correct answer.');
-                return;
-            }
+            if (correct.length < 1) { setSaveError('Please select at least 1 correct answer.'); return; }
         }
-        if (editForm.type === 'fill_blank' && !editForm.fillAnswer.trim()) {
-            setSaveError('Correct answer is required.');
-            return;
-        }
+        if (editForm.type === 'fill_blank' && !editForm.fillAnswer.trim()) { setSaveError('Correct answer is required.'); return; }
 
         setSaving(true);
         try {
@@ -123,97 +105,78 @@ const QuestionDetailPage = () => {
     };
 
     const sectionStyle = {
-        backgroundColor: '#fff',
+        backgroundColor: 'var(--bg-card)',
         borderRadius: '12px',
         padding: '24px',
         marginBottom: '16px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+        boxShadow: `0 2px 8px var(--shadow)`,
+        border: '1px solid var(--border)'
     };
 
     const tabStyle = (active) => ({
-        padding: '7px 18px',
-        borderRadius: '8px',
-        border: 'none',
-        backgroundColor: active ? '#4F46E5' : '#f0f0f0',
-        color: active ? '#fff' : '#666',
-        fontSize: '13px',
-        fontWeight: '600',
-        cursor: 'pointer'
+        padding: '7px 18px', borderRadius: '8px', border: 'none',
+        backgroundColor: active ? 'var(--accent)' : 'var(--bg-hover)',
+        color: active ? '#fff' : 'var(--text-secondary)',
+        fontSize: '13px', fontWeight: '600', cursor: 'pointer'
     });
 
     const labelStyle = {
-        fontSize: '12px',
-        fontWeight: '700',
-        color: '#888',
-        textTransform: 'uppercase',
-        letterSpacing: '0.5px',
-        marginBottom: '6px',
-        display: 'block'
+        fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)',
+        textTransform: 'uppercase', letterSpacing: '0.5px',
+        marginBottom: '6px', display: 'block'
+    };
+
+    const inputStyle = {
+        width: '100%', padding: '11px 14px', borderRadius: '8px',
+        border: '1px solid var(--input-border)', fontSize: '14px',
+        outline: 'none', boxSizing: 'border-box',
+        backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)'
     };
 
     if (loading) return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+        <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
             <Navbar />
-            <div style={{ textAlign: 'center', padding: '80px', color: '#888' }}>Loading...</div>
+            <div style={{ textAlign: 'center', padding: '80px', color: 'var(--text-muted)' }}>Loading...</div>
         </div>
     );
 
     if (error) return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+        <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
             <Navbar />
-            <div style={{ textAlign: 'center', padding: '80px', color: '#EF4444' }}>{error}</div>
+            <div style={{ textAlign: 'center', padding: '80px', color: 'var(--error)' }}>{error}</div>
         </div>
     );
 
     return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+        <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
             <Navbar />
             <div style={{ maxWidth: '760px', margin: '0 auto', padding: '32px 24px' }}>
 
                 {/* Header */}
-                <div style={{
-                    display: 'flex', alignItems: 'center',
-                    justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px'
-                }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <button
-                            onClick={() => navigate('/questions')}
-                            style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#666' }}
-                        >
+                        <button onClick={() => navigate('/questions')}
+                            style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
                             ←
                         </button>
-                        <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#111' }}>
+                        <h1 style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-primary)' }}>
                             Question Detail
                         </h1>
                     </div>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                        {!editing && (
-                            <>
-                                <button
-                                    onClick={startEditing}
-                                    style={{
-                                        padding: '8px 18px',
-                                        backgroundColor: '#EEF2FF', color: '#4F46E5',
-                                        border: 'none', borderRadius: '8px',
-                                        fontSize: '13px', fontWeight: '600', cursor: 'pointer'
-                                    }}
-                                >
-                                    ✏️ Edit
-                                </button>
-                                <button
-                                    onClick={() => setShowDeleteModal(true)}
-                                    style={{
-                                        padding: '8px 18px',
-                                        backgroundColor: '#FEF2F2', color: '#EF4444',
-                                        border: 'none', borderRadius: '8px',
-                                        fontSize: '13px', fontWeight: '600', cursor: 'pointer'
-                                    }}
-                                >
-                                    🗑️ Delete
-                                </button>
-                            </>
-                        )}
-                    </div>
+                    {!editing && (
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button onClick={startEditing} style={{
+                                padding: '8px 18px', backgroundColor: 'var(--accent-light)',
+                                color: 'var(--accent-text)', border: 'none', borderRadius: '8px',
+                                fontSize: '13px', fontWeight: '600', cursor: 'pointer'
+                            }}>✏️ Edit</button>
+                            <button onClick={() => setShowDeleteModal(true)} style={{
+                                padding: '8px 18px', backgroundColor: 'var(--error-light)',
+                                color: 'var(--error)', border: 'none', borderRadius: '8px',
+                                fontSize: '13px', fontWeight: '600', cursor: 'pointer'
+                            }}>🗑️ Delete</button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Meta Info */}
@@ -223,7 +186,7 @@ const QuestionDetailPage = () => {
                             <span style={labelStyle}>Type</span>
                             <span style={{
                                 padding: '4px 12px', borderRadius: '20px',
-                                backgroundColor: '#EEF2FF', color: '#4F46E5',
+                                backgroundColor: 'var(--accent-light)', color: 'var(--accent-text)',
                                 fontSize: '13px', fontWeight: '700'
                             }}>
                                 {getQuestionTypeLabel(question.type)}
@@ -231,30 +194,21 @@ const QuestionDetailPage = () => {
                         </div>
                         <div>
                             <span style={labelStyle}>Starred</span>
-                            <span style={{ fontSize: '18px' }}>
-                                {question.is_starred ? '⭐' : '☆'}
-                            </span>
+                            <span style={{ fontSize: '18px' }}>{question.is_starred ? '⭐' : '☆'}</span>
                         </div>
                     </div>
 
                     {/* Stats */}
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-                        gap: '12px', marginBottom: '16px'
-                    }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px', marginBottom: '16px' }}>
                         {[
-                            { label: '✅ Correct', value: question.correct_count, color: '#10B981' },
-                            { label: '❌ Wrong', value: question.wrong_count, color: '#EF4444' },
-                            { label: '⏭️ Unattempted', value: question.unattempted_count, color: '#F59E0B' },
-                            { label: '⚡ Min Time', value: formatTime(question.min_time), color: '#4F46E5' },
-                            { label: '🕐 Max Time', value: formatTime(question.max_time), color: '#8B5CF6' }
+                            { label: '✅ Correct', value: question.correct_count, color: 'var(--success)' },
+                            { label: '❌ Wrong', value: question.wrong_count, color: 'var(--error)' },
+                            { label: '⏭️ Unattempted', value: question.unattempted_count, color: 'var(--warning)' },
+                            { label: '⚡ Min Time', value: formatTime(question.min_time), color: 'var(--accent)' },
+                            { label: '🕐 Max Time', value: formatTime(question.max_time), color: 'var(--accent)' }
                         ].map(stat => (
-                            <div key={stat.label} style={{
-                                backgroundColor: '#fafafa', borderRadius: '8px',
-                                padding: '12px', textAlign: 'center'
-                            }}>
-                                <p style={{ fontSize: '11px', color: '#888', marginBottom: '4px' }}>{stat.label}</p>
+                            <div key={stat.label} style={{ backgroundColor: 'var(--bg-hover)', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>{stat.label}</p>
                                 <p style={{ fontSize: '18px', fontWeight: '800', color: stat.color }}>{stat.value}</p>
                             </div>
                         ))}
@@ -267,11 +221,9 @@ const QuestionDetailPage = () => {
                             {question.tags?.map(tag => (
                                 <span key={tag.id} style={{
                                     padding: '3px 10px', borderRadius: '12px',
-                                    backgroundColor: '#EEF2FF', color: '#4F46E5',
+                                    backgroundColor: 'var(--accent-light)', color: 'var(--accent-text)',
                                     fontSize: '12px', fontWeight: '600'
-                                }}>
-                                    {tag.name}
-                                </span>
+                                }}>{tag.name}</span>
                             ))}
                         </div>
                     </div>
@@ -280,40 +232,34 @@ const QuestionDetailPage = () => {
                 {/* VIEW MODE */}
                 {!editing && (
                     <>
-                        {/* Question */}
                         <div style={sectionStyle}>
                             <span style={labelStyle}>Question</span>
                             {question.question_text && (
-                                <p style={{ fontSize: '16px', color: '#111', lineHeight: '1.6' }}>
+                                <p style={{ fontSize: '16px', color: 'var(--text-primary)', lineHeight: '1.6' }}>
                                     {question.question_text}
                                 </p>
                             )}
                             {question.question_image_url && (
-                                <img
-                                    src={question.question_image_url}
-                                    alt="Question"
-                                    style={{ maxWidth: '100%', borderRadius: '8px', marginTop: '8px' }}
-                                />
+                                <img src={question.question_image_url} alt="Question"
+                                    style={{ maxWidth: '100%', borderRadius: '8px', marginTop: '8px' }} />
                             )}
                         </div>
 
-                        {/* Options for MCQ */}
                         {(question.type === 'mcq_single' || question.type === 'mcq_multiple') && (
                             <div style={sectionStyle}>
                                 <span style={labelStyle}>Options</span>
                                 {question.options?.map((opt, idx) => (
                                     <div key={opt.id} style={{
                                         padding: '12px 16px', borderRadius: '8px',
-                                        border: '1px solid #e5e7eb', marginBottom: '8px',
-                                        backgroundColor: '#fafafa'
+                                        border: '1px solid var(--border)', marginBottom: '8px',
+                                        backgroundColor: 'var(--bg-hover)'
                                     }}>
-                                        <span style={{ fontSize: '14px', color: '#555', fontWeight: '500' }}>
+                                        <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>
                                             {String.fromCharCode(65 + idx)}. {opt.option_text || '(Image option)'}
                                         </span>
                                         {opt.option_image_url && (
                                             <img src={opt.option_image_url} alt={`Option ${idx + 1}`}
-                                                style={{ maxWidth: '100%', borderRadius: '6px', marginTop: '6px', display: 'block' }}
-                                            />
+                                                style={{ maxWidth: '100%', borderRadius: '6px', marginTop: '6px', display: 'block' }} />
                                         )}
                                     </div>
                                 ))}
@@ -324,42 +270,34 @@ const QuestionDetailPage = () => {
                         <div style={sectionStyle}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={labelStyle}>Answer</span>
-                                <button
-                                    onClick={() => setShowAnswer(!showAnswer)}
-                                    style={{
-                                        padding: '6px 16px',
-                                        backgroundColor: showAnswer ? '#EEF2FF' : '#4F46E5',
-                                        color: showAnswer ? '#4F46E5' : '#fff',
-                                        border: 'none', borderRadius: '6px',
-                                        fontSize: '13px', fontWeight: '600', cursor: 'pointer'
-                                    }}
-                                >
+                                <button onClick={() => setShowAnswer(!showAnswer)} style={{
+                                    padding: '6px 16px',
+                                    backgroundColor: showAnswer ? 'var(--accent-light)' : 'var(--accent)',
+                                    color: showAnswer ? 'var(--accent-text)' : '#fff',
+                                    border: 'none', borderRadius: '6px',
+                                    fontSize: '13px', fontWeight: '600', cursor: 'pointer'
+                                }}>
                                     {showAnswer ? 'Hide Answer' : 'View Answer'}
                                 </button>
                             </div>
                             {showAnswer && (
-                                <div style={{
-                                    marginTop: '12px', padding: '14px',
-                                    backgroundColor: '#F0FDF4', borderRadius: '8px',
-                                    border: '1px solid #A7F3D0'
-                                }}>
+                                <div style={{ marginTop: '12px', padding: '14px', backgroundColor: 'var(--success-light)', borderRadius: '8px', border: '1px solid var(--success)' }}>
                                     {question.type === 'fill_blank' && (
-                                        <p style={{ fontSize: '15px', color: '#10B981', fontWeight: '700' }}>
+                                        <p style={{ fontSize: '15px', color: 'var(--success)', fontWeight: '700' }}>
                                             ✅ {question.fillAnswer?.correct_answer}
                                         </p>
                                     )}
-                                    {(question.type === 'mcq_single' || question.type === 'mcq_multiple') && (
-                                        question.options?.filter(o => o.is_correct).map((opt, idx) => (
-                                            <p key={opt.id} style={{ fontSize: '15px', color: '#10B981', fontWeight: '700' }}>
-                                                ✅ {opt.option_text || `Option (Image)`}
+                                    {(question.type === 'mcq_single' || question.type === 'mcq_multiple') &&
+                                        question.options?.filter(o => o.is_correct).map(opt => (
+                                            <p key={opt.id} style={{ fontSize: '15px', color: 'var(--success)', fontWeight: '700' }}>
+                                                ✅ {opt.option_text || '(Image option)'}
                                                 {opt.option_image_url && (
                                                     <img src={opt.option_image_url} alt="Correct"
-                                                        style={{ maxWidth: '100%', borderRadius: '6px', marginTop: '6px', display: 'block' }}
-                                                    />
+                                                        style={{ maxWidth: '100%', borderRadius: '6px', marginTop: '6px', display: 'block' }} />
                                                 )}
                                             </p>
                                         ))
-                                    )}
+                                    }
                                 </div>
                             )}
                         </div>
@@ -369,30 +307,26 @@ const QuestionDetailPage = () => {
                             <div style={sectionStyle}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={labelStyle}>Solution</span>
-                                    <button
-                                        onClick={() => setShowSolution(!showSolution)}
-                                        style={{
-                                            padding: '6px 16px',
-                                            backgroundColor: showSolution ? '#EEF2FF' : '#4F46E5',
-                                            color: showSolution ? '#4F46E5' : '#fff',
-                                            border: 'none', borderRadius: '6px',
-                                            fontSize: '13px', fontWeight: '600', cursor: 'pointer'
-                                        }}
-                                    >
+                                    <button onClick={() => setShowSolution(!showSolution)} style={{
+                                        padding: '6px 16px',
+                                        backgroundColor: showSolution ? 'var(--accent-light)' : 'var(--accent)',
+                                        color: showSolution ? 'var(--accent-text)' : '#fff',
+                                        border: 'none', borderRadius: '6px',
+                                        fontSize: '13px', fontWeight: '600', cursor: 'pointer'
+                                    }}>
                                         {showSolution ? 'Hide Solution' : 'View Solution'}
                                     </button>
                                 </div>
                                 {showSolution && (
                                     <div style={{ marginTop: '12px' }}>
                                         {question.solution_text && (
-                                            <p style={{ fontSize: '15px', color: '#333', lineHeight: '1.6' }}>
+                                            <p style={{ fontSize: '15px', color: 'var(--text-primary)', lineHeight: '1.6' }}>
                                                 {question.solution_text}
                                             </p>
                                         )}
                                         {question.solution_image_url && (
                                             <img src={question.solution_image_url} alt="Solution"
-                                                style={{ maxWidth: '100%', borderRadius: '8px', marginTop: '8px' }}
-                                            />
+                                                style={{ maxWidth: '100%', borderRadius: '8px', marginTop: '8px' }} />
                                         )}
                                     </div>
                                 )}
@@ -405,172 +339,101 @@ const QuestionDetailPage = () => {
                 {editing && editForm && (
                     <>
                         {saveError && (
-                            <div style={{
-                                backgroundColor: '#FEF2F2', color: '#EF4444',
-                                padding: '12px 16px', borderRadius: '8px',
-                                fontSize: '14px', marginBottom: '16px'
-                            }}>
+                            <div style={{ backgroundColor: 'var(--error-light)', color: 'var(--error)', padding: '12px 16px', borderRadius: '8px', fontSize: '14px', marginBottom: '16px' }}>
                                 {saveError}
                             </div>
                         )}
 
-                        {/* Question */}
                         <div style={sectionStyle}>
-                            <label style={{ fontSize: '14px', fontWeight: '700', color: '#333', display: 'block', marginBottom: '10px' }}>
-                                Question *
-                            </label>
+                            <label style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', display: 'block', marginBottom: '10px' }}>Question *</label>
                             <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-                                <button style={tabStyle(editForm.questionInputType === 'text')}
-                                    onClick={() => setEditForm({ ...editForm, questionInputType: 'text' })}>
-                                    ✏️ Write
-                                </button>
-                                <button style={tabStyle(editForm.questionInputType === 'image')}
-                                    onClick={() => setEditForm({ ...editForm, questionInputType: 'image' })}>
-                                    📷 Image
-                                </button>
+                                <button style={tabStyle(editForm.questionInputType === 'text')} onClick={() => setEditForm({ ...editForm, questionInputType: 'text' })}>✏️ Write</button>
+                                <button style={tabStyle(editForm.questionInputType === 'image')} onClick={() => setEditForm({ ...editForm, questionInputType: 'image' })}>📷 Image</button>
                             </div>
                             {editForm.questionInputType === 'text' ? (
-                                <textarea
-                                    value={editForm.questionText}
+                                <textarea value={editForm.questionText}
                                     onChange={e => setEditForm({ ...editForm, questionText: e.target.value })}
-                                    rows={4}
-                                    style={{
-                                        width: '100%', padding: '12px 14px',
-                                        borderRadius: '8px', border: '1px solid #ddd',
-                                        fontSize: '14px', outline: 'none',
-                                        resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit'
-                                    }}
-                                />
+                                    rows={4} style={{
+                                        width: '100%', padding: '12px 14px', borderRadius: '8px',
+                                        border: '1px solid var(--input-border)', fontSize: '14px',
+                                        outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                                        fontFamily: 'inherit', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)'
+                                    }} />
                             ) : (
-                                <ImageUpload
-                                    label="Question Image"
-                                    imageUrl={editForm.questionImageUrl}
+                                <ImageUpload label="Question Image" imageUrl={editForm.questionImageUrl}
                                     onImageChange={url => setEditForm({ ...editForm, questionImageUrl: url })}
-                                    onClear={() => setEditForm({ ...editForm, questionImageUrl: null })}
-                                />
+                                    onClear={() => setEditForm({ ...editForm, questionImageUrl: null })} />
                             )}
                         </div>
 
-                        {/* Options */}
                         {(editForm.type === 'mcq_single' || editForm.type === 'mcq_multiple') && (
                             <div style={sectionStyle}>
-                                <label style={{ fontSize: '14px', fontWeight: '700', color: '#333', display: 'block', marginBottom: '10px' }}>
-                                    Options *
-                                </label>
-                                <OptionsList
-                                    options={editForm.options}
+                                <label style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', display: 'block', marginBottom: '10px' }}>Options *</label>
+                                <OptionsList options={editForm.options}
                                     onChange={opts => setEditForm({ ...editForm, options: opts })}
-                                    allowMultiple={editForm.type === 'mcq_multiple'}
-                                />
+                                    allowMultiple={editForm.type === 'mcq_multiple'} />
                             </div>
                         )}
 
-                        {/* Fill Answer */}
                         {editForm.type === 'fill_blank' && (
                             <div style={sectionStyle}>
-                                <label style={{ fontSize: '14px', fontWeight: '700', color: '#333', display: 'block', marginBottom: '10px' }}>
-                                    Correct Answer *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={editForm.fillAnswer}
+                                <label style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', display: 'block', marginBottom: '10px' }}>Correct Answer *</label>
+                                <input type="text" value={editForm.fillAnswer}
                                     onChange={e => setEditForm({ ...editForm, fillAnswer: e.target.value })}
-                                    style={{
-                                        width: '100%', padding: '11px 14px',
-                                        borderRadius: '8px', border: '1px solid #ddd',
-                                        fontSize: '14px', outline: 'none', boxSizing: 'border-box'
-                                    }}
-                                />
+                                    style={inputStyle} />
                             </div>
                         )}
 
-                        {/* Solution */}
                         <div style={sectionStyle}>
-                            <label style={{ fontSize: '14px', fontWeight: '700', color: '#333', display: 'block', marginBottom: '10px' }}>
-                                Solution (Optional)
-                            </label>
+                            <label style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', display: 'block', marginBottom: '10px' }}>Solution (Optional)</label>
                             <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-                                <button style={tabStyle(editForm.solutionInputType === 'text')}
-                                    onClick={() => setEditForm({ ...editForm, solutionInputType: 'text' })}>
-                                    ✏️ Write
-                                </button>
-                                <button style={tabStyle(editForm.solutionInputType === 'image')}
-                                    onClick={() => setEditForm({ ...editForm, solutionInputType: 'image' })}>
-                                    📷 Image
-                                </button>
+                                <button style={tabStyle(editForm.solutionInputType === 'text')} onClick={() => setEditForm({ ...editForm, solutionInputType: 'text' })}>✏️ Write</button>
+                                <button style={tabStyle(editForm.solutionInputType === 'image')} onClick={() => setEditForm({ ...editForm, solutionInputType: 'image' })}>📷 Image</button>
                             </div>
                             {editForm.solutionInputType === 'text' ? (
-                                <textarea
-                                    value={editForm.solutionText}
+                                <textarea value={editForm.solutionText}
                                     onChange={e => setEditForm({ ...editForm, solutionText: e.target.value })}
-                                    rows={3}
-                                    style={{
-                                        width: '100%', padding: '12px 14px',
-                                        borderRadius: '8px', border: '1px solid #ddd',
-                                        fontSize: '14px', outline: 'none',
-                                        resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit'
-                                    }}
-                                />
+                                    rows={3} style={{
+                                        width: '100%', padding: '12px 14px', borderRadius: '8px',
+                                        border: '1px solid var(--input-border)', fontSize: '14px',
+                                        outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                                        fontFamily: 'inherit', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)'
+                                    }} />
                             ) : (
-                                <ImageUpload
-                                    label="Solution Image"
-                                    imageUrl={editForm.solutionImageUrl}
+                                <ImageUpload label="Solution Image" imageUrl={editForm.solutionImageUrl}
                                     onImageChange={url => setEditForm({ ...editForm, solutionImageUrl: url })}
-                                    onClear={() => setEditForm({ ...editForm, solutionImageUrl: null })}
-                                />
+                                    onClear={() => setEditForm({ ...editForm, solutionImageUrl: null })} />
                             )}
                         </div>
 
-                        {/* Tags */}
                         <div style={sectionStyle}>
-                            <label style={{ fontSize: '14px', fontWeight: '700', color: '#333', display: 'block', marginBottom: '10px' }}>
-                                Tags *
-                            </label>
-                            <TagInput
-                                selectedTags={editForm.tags}
-                                onChange={tags => setEditForm({ ...editForm, tags })}
-                            />
+                            <label style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', display: 'block', marginBottom: '10px' }}>Tags *</label>
+                            <TagInput selectedTags={editForm.tags} onChange={tags => setEditForm({ ...editForm, tags })} />
                         </div>
 
-                        {/* Starred */}
                         <div style={sectionStyle}>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                                <input
-                                    type="checkbox"
-                                    checked={editForm.isStarred}
+                                <input type="checkbox" checked={editForm.isStarred}
                                     onChange={e => setEditForm({ ...editForm, isStarred: e.target.checked })}
-                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                                />
-                                <span style={{ fontSize: '15px', fontWeight: '600', color: '#333' }}>
-                                    ⭐ Star this question
-                                </span>
+                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                                <span style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>⭐ Star this question</span>
                             </label>
                         </div>
 
-                        {/* Save / Cancel */}
                         <div style={{ display: 'flex', gap: '12px' }}>
-                            <button
-                                onClick={handleSave}
-                                disabled={saving}
-                                style={{
-                                    flex: 1, padding: '14px',
-                                    backgroundColor: saving ? '#a5b4fc' : '#4F46E5',
-                                    color: '#fff', border: 'none',
-                                    borderRadius: '10px', fontSize: '15px',
-                                    fontWeight: '700', cursor: saving ? 'not-allowed' : 'pointer'
-                                }}
-                            >
+                            <button onClick={handleSave} disabled={saving} style={{
+                                flex: 1, padding: '14px',
+                                backgroundColor: saving ? 'var(--text-muted)' : 'var(--accent)',
+                                color: '#fff', border: 'none', borderRadius: '10px',
+                                fontSize: '15px', fontWeight: '700', cursor: saving ? 'not-allowed' : 'pointer'
+                            }}>
                                 {saving ? 'Saving...' : '💾 Save Changes'}
                             </button>
-                            <button
-                                onClick={() => { setEditing(false); setSaveError(''); }}
-                                style={{
-                                    padding: '14px 24px',
-                                    backgroundColor: '#fff', color: '#333',
-                                    border: '1px solid #ddd', borderRadius: '10px',
-                                    fontSize: '15px', fontWeight: '700', cursor: 'pointer'
-                                }}
-                            >
+                            <button onClick={() => { setEditing(false); setSaveError(''); }} style={{
+                                padding: '14px 24px', backgroundColor: 'var(--bg-card)',
+                                color: 'var(--text-primary)', border: '1px solid var(--border)',
+                                borderRadius: '10px', fontSize: '15px', fontWeight: '700', cursor: 'pointer'
+                            }}>
                                 Cancel
                             </button>
                         </div>

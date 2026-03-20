@@ -23,12 +23,10 @@ const LoginPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-
         if (!form.username || !form.password) {
             setError('Please enter username and password.');
             return;
         }
-
         setLoading(true);
         try {
             const res = await API.post('/auth/login', form);
@@ -45,68 +43,71 @@ const LoginPage = () => {
         width: '100%',
         padding: '12px 14px',
         borderRadius: '8px',
-        border: '1px solid #ddd',
+        border: '1px solid var(--input-border)',
         fontSize: '14px',
         outline: 'none',
         boxSizing: 'border-box',
-        marginBottom: '16px'
+        marginBottom: '16px',
+        backgroundColor: 'var(--bg-input)',
+        color: 'var(--text-primary)'
+    };
+
+    const labelStyle = {
+        fontSize: '13px',
+        fontWeight: '600',
+        color: 'var(--text-primary)',
+        display: 'block',
+        marginBottom: '6px'
     };
 
     return (
         <div style={{
             minHeight: '100vh',
-            backgroundColor: '#f5f5f5',
+            backgroundColor: 'var(--bg-main)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: '24px'
         }}>
             <div style={{
-                backgroundColor: '#fff',
+                backgroundColor: 'var(--bg-card)',
                 borderRadius: '16px',
                 padding: '40px',
                 width: '100%',
                 maxWidth: '440px',
-                boxShadow: '0 4px 24px rgba(0,0,0,0.08)'
+                boxShadow: `0 4px 24px var(--shadow)`,
+                border: '1px solid var(--border)'
             }}>
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                     <h1 style={{
                         fontSize: '28px',
                         fontWeight: '800',
-                        color: '#4F46E5',
+                        color: 'var(--accent)',
                         marginBottom: '8px'
                     }}>
                         QuizApp
                     </h1>
-                    <p style={{ color: '#666', fontSize: '14px' }}>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
                         Welcome back! Please login.
                     </p>
                 </div>
 
                 {error && (
                     <div style={{
-                        backgroundColor: '#FEF2F2',
-                        color: '#EF4444',
+                        backgroundColor: 'var(--error-light)',
+                        color: 'var(--error)',
                         padding: '12px 16px',
                         borderRadius: '8px',
                         fontSize: '14px',
                         marginBottom: '16px',
-                        border: '1px solid #FECACA'
+                        border: '1px solid var(--error)'
                     }}>
                         {error}
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit}>
-                    <label style={{
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        color: '#333',
-                        display: 'block',
-                        marginBottom: '6px'
-                    }}>
-                        Username
-                    </label>
+                    <label style={labelStyle}>Username</label>
                     <input
                         style={inputStyle}
                         type="text"
@@ -116,15 +117,7 @@ const LoginPage = () => {
                         placeholder="Enter your username"
                     />
 
-                    <label style={{
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        color: '#333',
-                        display: 'block',
-                        marginBottom: '6px'
-                    }}>
-                        Password
-                    </label>
+                    <label style={labelStyle}>Password</label>
                     <input
                         style={inputStyle}
                         type="password"
@@ -145,7 +138,7 @@ const LoginPage = () => {
                             alignItems: 'center',
                             gap: '8px',
                             fontSize: '14px',
-                            color: '#555',
+                            color: 'var(--text-secondary)',
                             cursor: 'pointer'
                         }}>
                             <input
@@ -161,7 +154,7 @@ const LoginPage = () => {
                             to="/forgot-password"
                             style={{
                                 fontSize: '14px',
-                                color: '#4F46E5',
+                                color: 'var(--accent)',
                                 fontWeight: '600'
                             }}
                         >
@@ -175,7 +168,7 @@ const LoginPage = () => {
                         style={{
                             width: '100%',
                             padding: '13px',
-                            backgroundColor: loading ? '#a5b4fc' : '#4F46E5',
+                            backgroundColor: loading ? 'var(--text-muted)' : 'var(--accent)',
                             color: '#fff',
                             border: 'none',
                             borderRadius: '8px',
@@ -193,10 +186,10 @@ const LoginPage = () => {
                     textAlign: 'center',
                     marginTop: '24px',
                     fontSize: '14px',
-                    color: '#666'
+                    color: 'var(--text-secondary)'
                 }}>
                     Don't have an account?{' '}
-                    <Link to="/signup" style={{ color: '#4F46E5', fontWeight: '600' }}>
+                    <Link to="/signup" style={{ color: 'var(--accent)', fontWeight: '600' }}>
                         Sign Up
                     </Link>
                 </p>

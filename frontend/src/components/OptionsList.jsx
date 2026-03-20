@@ -52,18 +52,18 @@ const OptionsList = ({ options, onChange, allowMultiple }) => {
 
     return (
         <div>
-            <p style={{ fontSize: '13px', color: '#666', marginBottom: '10px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '10px' }}>
                 {allowMultiple
                     ? '✅ Select all correct answers (at least 1)'
                     : '✅ Select exactly 1 correct answer'}
             </p>
             {options.map((option, index) => (
                 <div key={index} style={{
-                    border: `2px solid ${option.isCorrect ? '#10B981' : '#e5e7eb'}`,
+                    border: `2px solid ${option.isCorrect ? 'var(--success)' : 'var(--border)'}`,
                     borderRadius: '10px',
                     padding: '14px',
                     marginBottom: '12px',
-                    backgroundColor: option.isCorrect ? '#F0FDF4' : '#fff',
+                    backgroundColor: option.isCorrect ? 'var(--success-light)' : 'var(--bg-card)',
                     transition: 'all 0.2s'
                 }}>
                     <div style={{
@@ -82,7 +82,7 @@ const OptionsList = ({ options, onChange, allowMultiple }) => {
                         <span style={{
                             fontSize: '14px',
                             fontWeight: '600',
-                            color: '#333',
+                            color: 'var(--text-primary)',
                             minWidth: '80px'
                         }}>
                             Option {index + 1}
@@ -93,8 +93,8 @@ const OptionsList = ({ options, onChange, allowMultiple }) => {
                             style={{
                                 marginLeft: 'auto',
                                 padding: '4px 10px',
-                                backgroundColor: '#FEE2E2',
-                                color: '#EF4444',
+                                backgroundColor: 'var(--error-light)',
+                                color: 'var(--error)',
                                 border: 'none',
                                 borderRadius: '6px',
                                 fontSize: '12px',
@@ -114,10 +114,12 @@ const OptionsList = ({ options, onChange, allowMultiple }) => {
                             width: '100%',
                             padding: '8px 12px',
                             borderRadius: '6px',
-                            border: '1px solid #ddd',
+                            border: '1px solid var(--input-border)',
                             fontSize: '14px',
                             marginBottom: '10px',
-                            boxSizing: 'border-box'
+                            boxSizing: 'border-box',
+                            backgroundColor: 'var(--bg-input)',
+                            color: 'var(--text-primary)'
                         }}
                     />
                     <ImageUpload
@@ -133,9 +135,9 @@ const OptionsList = ({ options, onChange, allowMultiple }) => {
                 onClick={handleAddOption}
                 style={{
                     padding: '10px 20px',
-                    backgroundColor: '#EEF2FF',
-                    color: '#4F46E5',
-                    border: '2px dashed #4F46E5',
+                    backgroundColor: 'var(--accent-light)',
+                    color: 'var(--accent-text)',
+                    border: '2px dashed var(--accent)',
                     borderRadius: '8px',
                     fontSize: '14px',
                     cursor: 'pointer',

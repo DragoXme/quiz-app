@@ -110,8 +110,8 @@ const TagInput = ({ selectedTags, onChange }) => {
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '6px',
-                        backgroundColor: '#EEF2FF',
-                        color: '#4F46E5',
+                        backgroundColor: 'var(--accent-light)',
+                        color: 'var(--accent-text)',
                         padding: '4px 10px',
                         borderRadius: '20px',
                         fontSize: '13px',
@@ -124,7 +124,7 @@ const TagInput = ({ selectedTags, onChange }) => {
                                 background: 'none',
                                 border: 'none',
                                 cursor: 'pointer',
-                                color: '#4F46E5',
+                                color: 'var(--accent-text)',
                                 fontSize: '16px',
                                 lineHeight: '1',
                                 padding: '0'
@@ -148,10 +148,12 @@ const TagInput = ({ selectedTags, onChange }) => {
                     width: '100%',
                     padding: '10px 14px',
                     borderRadius: '8px',
-                    border: '1px solid #ddd',
+                    border: '1px solid var(--input-border)',
                     fontSize: '14px',
                     outline: 'none',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
+                    backgroundColor: 'var(--bg-input)',
+                    color: 'var(--text-primary)'
                 }}
             />
 
@@ -162,10 +164,10 @@ const TagInput = ({ selectedTags, onChange }) => {
                     top: '100%',
                     left: 0,
                     right: 0,
-                    backgroundColor: '#fff',
-                    border: '1px solid #ddd',
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--border)',
                     borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    boxShadow: `0 4px 12px var(--shadow)`,
                     zIndex: 100,
                     maxHeight: '200px',
                     overflowY: 'auto'
@@ -178,10 +180,11 @@ const TagInput = ({ selectedTags, onChange }) => {
                                 padding: '10px 14px',
                                 cursor: 'pointer',
                                 fontSize: '14px',
-                                borderBottom: '1px solid #f0f0f0'
+                                borderBottom: '1px solid var(--border-light)',
+                                color: 'var(--text-primary)'
                             }}
-                            onMouseEnter={e => e.target.style.backgroundColor = '#f5f5f5'}
-                            onMouseLeave={e => e.target.style.backgroundColor = '#fff'}
+                            onMouseEnter={e => e.target.style.backgroundColor = 'var(--bg-hover)'}
+                            onMouseLeave={e => e.target.style.backgroundColor = 'var(--bg-card)'}
                         >
                             {tag.name}
                         </div>
@@ -196,22 +199,22 @@ const TagInput = ({ selectedTags, onChange }) => {
                     top: '100%',
                     left: 0,
                     right: 0,
-                    backgroundColor: '#fff',
-                    border: '1px solid #ddd',
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--border)',
                     borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    boxShadow: `0 4px 12px var(--shadow)`,
                     zIndex: 100,
                     padding: '12px 14px'
                 }}>
-                    <p style={{ fontSize: '13px', color: '#666', marginBottom: '10px' }}>
-                        Would you like to create the tag <strong>"{inputValue.trim()}"</strong>?
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+                        Would you like to create the tag <strong style={{ color: 'var(--text-primary)' }}>"{inputValue.trim()}"</strong>?
                     </p>
                     <div style={{ display: 'flex', gap: '8px' }}>
                         <button
                             onClick={handleCreateTag}
                             style={{
                                 padding: '6px 14px',
-                                backgroundColor: '#4F46E5',
+                                backgroundColor: 'var(--accent)',
                                 color: '#fff',
                                 border: 'none',
                                 borderRadius: '6px',
@@ -226,9 +229,9 @@ const TagInput = ({ selectedTags, onChange }) => {
                             onClick={() => { setShowConfirm(false); setInputValue(''); }}
                             style={{
                                 padding: '6px 14px',
-                                backgroundColor: '#fff',
-                                color: '#333',
-                                border: '1px solid #ddd',
+                                backgroundColor: 'var(--bg-card)',
+                                color: 'var(--text-primary)',
+                                border: '1px solid var(--border)',
                                 borderRadius: '6px',
                                 fontSize: '13px',
                                 cursor: 'pointer'

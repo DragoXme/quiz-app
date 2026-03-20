@@ -24,22 +24,18 @@ const SignupPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-
         if (!form.username || !form.email || !form.password || !form.confirmPassword) {
             setError('Please fill in all required fields.');
             return;
         }
-
         if (form.password !== form.confirmPassword) {
             setError('Passwords do not match.');
             return;
         }
-
         if (form.password.length < 6) {
             setError('Password must be at least 6 characters.');
             return;
         }
-
         setLoading(true);
         try {
             const res = await API.post('/auth/signup', form);
@@ -56,62 +52,71 @@ const SignupPage = () => {
         width: '100%',
         padding: '12px 14px',
         borderRadius: '8px',
-        border: '1px solid #ddd',
+        border: '1px solid var(--input-border)',
         fontSize: '14px',
         outline: 'none',
         boxSizing: 'border-box',
-        marginBottom: '16px'
+        marginBottom: '16px',
+        backgroundColor: 'var(--bg-input)',
+        color: 'var(--text-primary)'
+    };
+
+    const labelStyle = {
+        fontSize: '13px',
+        fontWeight: '600',
+        color: 'var(--text-primary)',
+        display: 'block',
+        marginBottom: '6px'
     };
 
     return (
         <div style={{
             minHeight: '100vh',
-            backgroundColor: '#f5f5f5',
+            backgroundColor: 'var(--bg-main)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: '24px'
         }}>
             <div style={{
-                backgroundColor: '#fff',
+                backgroundColor: 'var(--bg-card)',
                 borderRadius: '16px',
                 padding: '40px',
                 width: '100%',
                 maxWidth: '440px',
-                boxShadow: '0 4px 24px rgba(0,0,0,0.08)'
+                boxShadow: `0 4px 24px var(--shadow)`,
+                border: '1px solid var(--border)'
             }}>
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                     <h1 style={{
                         fontSize: '28px',
                         fontWeight: '800',
-                        color: '#4F46E5',
+                        color: 'var(--accent)',
                         marginBottom: '8px'
                     }}>
                         QuizApp
                     </h1>
-                    <p style={{ color: '#666', fontSize: '14px' }}>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
                         Create your account
                     </p>
                 </div>
 
                 {error && (
                     <div style={{
-                        backgroundColor: '#FEF2F2',
-                        color: '#EF4444',
+                        backgroundColor: 'var(--error-light)',
+                        color: 'var(--error)',
                         padding: '12px 16px',
                         borderRadius: '8px',
                         fontSize: '14px',
                         marginBottom: '16px',
-                        border: '1px solid #FECACA'
+                        border: '1px solid var(--error)'
                     }}>
                         {error}
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit}>
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#333', display: 'block', marginBottom: '6px' }}>
-                        Username *
-                    </label>
+                    <label style={labelStyle}>Username *</label>
                     <input
                         style={inputStyle}
                         type="text"
@@ -121,9 +126,7 @@ const SignupPage = () => {
                         placeholder="Enter username"
                     />
 
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#333', display: 'block', marginBottom: '6px' }}>
-                        Email *
-                    </label>
+                    <label style={labelStyle}>Email *</label>
                     <input
                         style={inputStyle}
                         type="email"
@@ -133,9 +136,7 @@ const SignupPage = () => {
                         placeholder="Enter email"
                     />
 
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#333', display: 'block', marginBottom: '6px' }}>
-                        Mobile (optional)
-                    </label>
+                    <label style={labelStyle}>Mobile (optional)</label>
                     <input
                         style={inputStyle}
                         type="tel"
@@ -145,9 +146,7 @@ const SignupPage = () => {
                         placeholder="Enter mobile number"
                     />
 
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#333', display: 'block', marginBottom: '6px' }}>
-                        Password *
-                    </label>
+                    <label style={labelStyle}>Password *</label>
                     <input
                         style={inputStyle}
                         type="password"
@@ -157,9 +156,7 @@ const SignupPage = () => {
                         placeholder="Min 6 characters"
                     />
 
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#333', display: 'block', marginBottom: '6px' }}>
-                        Confirm Password *
-                    </label>
+                    <label style={labelStyle}>Confirm Password *</label>
                     <input
                         style={inputStyle}
                         type="password"
@@ -175,7 +172,7 @@ const SignupPage = () => {
                         style={{
                             width: '100%',
                             padding: '13px',
-                            backgroundColor: loading ? '#a5b4fc' : '#4F46E5',
+                            backgroundColor: loading ? 'var(--text-muted)' : 'var(--accent)',
                             color: '#fff',
                             border: 'none',
                             borderRadius: '8px',
@@ -193,10 +190,10 @@ const SignupPage = () => {
                     textAlign: 'center',
                     marginTop: '24px',
                     fontSize: '14px',
-                    color: '#666'
+                    color: 'var(--text-secondary)'
                 }}>
                     Already have an account?{' '}
-                    <Link to="/login" style={{ color: '#4F46E5', fontWeight: '600' }}>
+                    <Link to="/login" style={{ color: 'var(--accent)', fontWeight: '600' }}>
                         Login
                     </Link>
                 </p>

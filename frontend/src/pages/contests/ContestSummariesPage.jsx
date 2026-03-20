@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../../api/axios';
 import Navbar from '../../components/Navbar';
-import { formatDate, formatTime } from '../../utils/helpers';
+import { formatDate } from '../../utils/helpers';
 
 const ContestSummariesPage = () => {
     const navigate = useNavigate();
@@ -10,9 +10,7 @@ const ContestSummariesPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        fetchSummaries();
-    }, []);
+    useEffect(() => { fetchSummaries(); }, []);
 
     const fetchSummaries = async () => {
         try {
@@ -26,72 +24,61 @@ const ContestSummariesPage = () => {
     };
 
     const sectionStyle = {
-        backgroundColor: '#fff',
+        backgroundColor: 'var(--bg-card)',
         borderRadius: '12px',
         padding: '24px',
         marginBottom: '16px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+        boxShadow: `0 2px 8px var(--shadow)`,
+        border: '1px solid var(--border)'
     };
 
     if (loading) return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+        <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
             <Navbar />
-            <div style={{ textAlign: 'center', padding: '80px', color: '#888' }}>
+            <div style={{ textAlign: 'center', padding: '80px', color: 'var(--text-muted)' }}>
                 Loading summaries...
             </div>
         </div>
     );
 
     return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+        <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
             <Navbar />
             <div style={{ maxWidth: '860px', margin: '0 auto', padding: '32px 24px' }}>
 
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
-                    <button
-                        onClick={() => navigate('/home')}
-                        style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#666' }}
-                    >
+                    <button onClick={() => navigate('/home')}
+                        style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
                         ←
                     </button>
                     <div>
-                        <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#111' }}>
+                        <h1 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>
                             Contest Summaries
                         </h1>
-                        <p style={{ fontSize: '13px', color: '#888', marginTop: '2px' }}>
+                        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
                             {summaries.length} contest{summaries.length !== 1 ? 's' : ''} completed
                         </p>
                     </div>
                 </div>
 
                 {error && (
-                    <div style={{
-                        backgroundColor: '#FEF2F2', color: '#EF4444',
-                        padding: '12px 16px', borderRadius: '8px',
-                        fontSize: '14px', marginBottom: '16px'
-                    }}>
+                    <div style={{ backgroundColor: 'var(--error-light)', color: 'var(--error)', padding: '12px 16px', borderRadius: '8px', fontSize: '14px', marginBottom: '16px' }}>
                         {error}
                     </div>
                 )}
 
                 {summaries.length === 0 ? (
-                    <div style={{
-                        ...sectionStyle, textAlign: 'center', padding: '60px'
-                    }}>
+                    <div style={{ ...sectionStyle, textAlign: 'center', padding: '60px' }}>
                         <p style={{ fontSize: '40px', marginBottom: '12px' }}>🏆</p>
-                        <p style={{ color: '#888', fontSize: '16px', marginBottom: '16px' }}>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginBottom: '16px' }}>
                             No contests completed yet.
                         </p>
-                        <button
-                            onClick={() => navigate('/test/configure')}
-                            style={{
-                                padding: '10px 24px',
-                                backgroundColor: '#4F46E5', color: '#fff',
-                                border: 'none', borderRadius: '8px',
-                                fontSize: '14px', fontWeight: '600', cursor: 'pointer'
-                            }}
-                        >
+                        <button onClick={() => navigate('/test/configure')} style={{
+                            padding: '10px 24px', backgroundColor: 'var(--accent)',
+                            color: '#fff', border: 'none', borderRadius: '8px',
+                            fontSize: '14px', fontWeight: '600', cursor: 'pointer'
+                        }}>
                             Take your first test
                         </button>
                     </div>
@@ -102,78 +89,59 @@ const ContestSummariesPage = () => {
                         const wrong = parseInt(summary.wrong_count) || 0;
                         const unattempted = parseInt(summary.unattempted_count) || 0;
                         const scorePercent = total > 0 ? Math.round((correct / total) * 100) : 0;
-                        const scoreColor = scorePercent >= 70 ? '#10B981' : scorePercent >= 40 ? '#F59E0B' : '#EF4444';
+                        const scoreColor = scorePercent >= 70 ? 'var(--success)' : scorePercent >= 40 ? 'var(--warning)' : 'var(--error)';
 
                         return (
-                            <div
-                                key={summary.id}
-                                onClick={() => navigate(`/contests/${summary.id}`)}
+                            <div key={summary.id} onClick={() => navigate(`/contests/${summary.id}`)}
                                 style={{
-                                    ...sectionStyle,
-                                    cursor: 'pointer',
-                                    border: '2px solid transparent',
+                                    ...sectionStyle, cursor: 'pointer',
                                     transition: 'all 0.2s'
                                 }}
                                 onMouseEnter={e => {
-                                    e.currentTarget.style.border = '2px solid #4F46E5';
-                                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(79,70,229,0.1)';
+                                    e.currentTarget.style.borderColor = 'var(--accent)';
+                                    e.currentTarget.style.boxShadow = `0 4px 16px var(--shadow-md)`;
                                 }}
                                 onMouseLeave={e => {
-                                    e.currentTarget.style.border = '2px solid transparent';
-                                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+                                    e.currentTarget.style.borderColor = 'var(--border)';
+                                    e.currentTarget.style.boxShadow = `0 2px 8px var(--shadow)`;
                                 }}
                             >
-                                <div style={{
-                                    display: 'flex', justifyContent: 'space-between',
-                                    alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px'
-                                }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
                                     <div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                                            <span style={{
-                                                fontSize: '13px', fontWeight: '700', color: '#888'
-                                            }}>
+                                            <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>
                                                 Contest #{summaries.length - idx}
                                             </span>
                                             <span style={{
                                                 padding: '2px 10px', borderRadius: '20px',
-                                                backgroundColor: `${scoreColor}15`, color: scoreColor,
-                                                fontSize: '12px', fontWeight: '700'
+                                                backgroundColor: 'var(--bg-hover)', color: scoreColor,
+                                                fontSize: '12px', fontWeight: '700',
+                                                border: `1px solid var(--border)`
                                             }}>
                                                 {scorePercent}%
                                             </span>
                                         </div>
-                                        <p style={{ fontSize: '13px', color: '#888' }}>
-                                            📅 {formatDate(summary.ended_at)}
-                                        </p>
-                                        <p style={{ fontSize: '13px', color: '#888', marginTop: '2px' }}>
+                                        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>📅 {formatDate(summary.ended_at)}</p>
+                                        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
                                             ⏱ {summary.total_time} min · 📝 {total} questions
                                         </p>
                                     </div>
-
-                                    <div style={{
-                                        display: 'flex', gap: '16px', flexWrap: 'wrap'
-                                    }}>
+                                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                                         {[
-                                            { label: '✅', value: correct, color: '#10B981' },
-                                            { label: '❌', value: wrong, color: '#EF4444' },
-                                            { label: '⏭️', value: unattempted, color: '#F59E0B' }
+                                            { label: '✅', value: correct, color: 'var(--success)' },
+                                            { label: '❌', value: wrong, color: 'var(--error)' },
+                                            { label: '⏭️', value: unattempted, color: 'var(--warning)' }
                                         ].map(stat => (
                                             <div key={stat.label} style={{ textAlign: 'center' }}>
-                                                <p style={{ fontSize: '20px', fontWeight: '800', color: stat.color }}>
-                                                    {stat.value}
-                                                </p>
-                                                <p style={{ fontSize: '11px', color: '#888' }}>{stat.label}</p>
+                                                <p style={{ fontSize: '20px', fontWeight: '800', color: stat.color }}>{stat.value}</p>
+                                                <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{stat.label}</p>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
 
                                 {/* Progress bar */}
-                                <div style={{
-                                    marginTop: '14px', height: '6px',
-                                    backgroundColor: '#f0f0f0', borderRadius: '3px',
-                                    overflow: 'hidden'
-                                }}>
+                                <div style={{ marginTop: '14px', height: '6px', backgroundColor: 'var(--bg-hover)', borderRadius: '3px', overflow: 'hidden' }}>
                                     <div style={{
                                         height: '100%', width: `${scorePercent}%`,
                                         backgroundColor: scoreColor,
