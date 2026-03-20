@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import API from '../../api/axios';
 import Navbar from '../../components/Navbar';
 import { formatDate } from '../../utils/helpers';
+import useWindowSize from '../../hooks/useWindowSize';
 
 const ContestSummariesPage = () => {
     const navigate = useNavigate();
+    const { isMobile } = useWindowSize();
     const [summaries, setSummaries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -26,8 +28,8 @@ const ContestSummariesPage = () => {
     const sectionStyle = {
         backgroundColor: 'var(--bg-card)',
         borderRadius: '12px',
-        padding: '24px',
-        marginBottom: '16px',
+        padding: isMobile ? '16px' : '24px',
+        marginBottom: '12px',
         boxShadow: `0 2px 8px var(--shadow)`,
         border: '1px solid var(--border)'
     };
@@ -44,19 +46,19 @@ const ContestSummariesPage = () => {
     return (
         <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
             <Navbar />
-            <div style={{ maxWidth: '860px', margin: '0 auto', padding: '32px 24px' }}>
+            <div style={{ maxWidth: '860px', margin: '0 auto', padding: isMobile ? '16px' : '32px 24px' }}>
 
                 {/* Header */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
                     <button onClick={() => navigate('/home')}
                         style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
                         ←
                     </button>
                     <div>
-                        <h1 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                        <h1 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '800', color: 'var(--text-primary)' }}>
                             Contest Summaries
                         </h1>
-                        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
                             {summaries.length} contest{summaries.length !== 1 ? 's' : ''} completed
                         </p>
                     </div>
@@ -69,9 +71,9 @@ const ContestSummariesPage = () => {
                 )}
 
                 {summaries.length === 0 ? (
-                    <div style={{ ...sectionStyle, textAlign: 'center', padding: '60px' }}>
+                    <div style={{ ...sectionStyle, textAlign: 'center', padding: '48px 24px' }}>
                         <p style={{ fontSize: '40px', marginBottom: '12px' }}>🏆</p>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginBottom: '16px' }}>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '15px', marginBottom: '16px' }}>
                             No contests completed yet.
                         </p>
                         <button onClick={() => navigate('/test/configure')} style={{
@@ -93,10 +95,7 @@ const ContestSummariesPage = () => {
 
                         return (
                             <div key={summary.id} onClick={() => navigate(`/contests/${summary.id}`)}
-                                style={{
-                                    ...sectionStyle, cursor: 'pointer',
-                                    transition: 'all 0.2s'
-                                }}
+                                style={{ ...sectionStyle, cursor: 'pointer', transition: 'all 0.2s' }}
                                 onMouseEnter={e => {
                                     e.currentTarget.style.borderColor = 'var(--accent)';
                                     e.currentTarget.style.boxShadow = `0 4px 16px var(--shadow-md)`;
@@ -106,9 +105,10 @@ const ContestSummariesPage = () => {
                                     e.currentTarget.style.boxShadow = `0 2px 8px var(--shadow)`;
                                 }}
                             >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                                {/* Top row */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                                     <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                                             <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>
                                                 Contest #{summaries.length - idx}
                                             </span>
@@ -121,19 +121,23 @@ const ContestSummariesPage = () => {
                                                 {scorePercent}%
                                             </span>
                                         </div>
-                                        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>📅 {formatDate(summary.ended_at)}</p>
-                                        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                        <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                            📅 {formatDate(summary.ended_at)}
+                                        </p>
+                                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
                                             ⏱ {summary.total_time} min · 📝 {total} questions
                                         </p>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+
+                                    {/* Stats */}
+                                    <div style={{ display: 'flex', gap: isMobile ? '12px' : '16px' }}>
                                         {[
                                             { label: '✅', value: correct, color: 'var(--success)' },
                                             { label: '❌', value: wrong, color: 'var(--error)' },
                                             { label: '⏭️', value: unattempted, color: 'var(--warning)' }
                                         ].map(stat => (
                                             <div key={stat.label} style={{ textAlign: 'center' }}>
-                                                <p style={{ fontSize: '20px', fontWeight: '800', color: stat.color }}>{stat.value}</p>
+                                                <p style={{ fontSize: isMobile ? '18px' : '20px', fontWeight: '800', color: stat.color }}>{stat.value}</p>
                                                 <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{stat.label}</p>
                                             </div>
                                         ))}
@@ -141,7 +145,7 @@ const ContestSummariesPage = () => {
                                 </div>
 
                                 {/* Progress bar */}
-                                <div style={{ marginTop: '14px', height: '6px', backgroundColor: 'var(--bg-hover)', borderRadius: '3px', overflow: 'hidden' }}>
+                                <div style={{ height: '5px', backgroundColor: 'var(--bg-hover)', borderRadius: '3px', overflow: 'hidden' }}>
                                     <div style={{
                                         height: '100%', width: `${scorePercent}%`,
                                         backgroundColor: scoreColor,

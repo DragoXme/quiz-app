@@ -7,10 +7,12 @@ import ImageUpload from '../../components/ImageUpload';
 import OptionsList from '../../components/OptionsList';
 import ConfirmModal from '../../components/ConfirmModal';
 import { getQuestionTypeLabel, formatTime } from '../../utils/helpers';
+import useWindowSize from '../../hooks/useWindowSize';
 
 const QuestionDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { isMobile } = useWindowSize();
     const [question, setQuestion] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -199,7 +201,7 @@ const QuestionDetailPage = () => {
                     </div>
 
                     {/* Stats */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)', gap: '10px', marginBottom: '16px' }}>
                         {[
                             { label: '✅ Correct', value: question.correct_count, color: 'var(--success)' },
                             { label: '❌ Wrong', value: question.wrong_count, color: 'var(--error)' },

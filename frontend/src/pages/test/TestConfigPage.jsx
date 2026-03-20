@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../../api/axios';
 import Navbar from '../../components/Navbar';
+import useWindowSize from '../../hooks/useWindowSize';
 
 const TestConfigPage = () => {
     const navigate = useNavigate();
+    const { isMobile } = useWindowSize();
     const [totalQuestions, setTotalQuestions] = useState(10);
     const [totalTime, setTotalTime] = useState(30);
     const [availableTags, setAvailableTags] = useState([]);
@@ -47,8 +49,8 @@ const TestConfigPage = () => {
     const sectionStyle = {
         backgroundColor: 'var(--bg-card)',
         borderRadius: '12px',
-        padding: '24px',
-        marginBottom: '20px',
+        padding: isMobile ? '16px' : '24px',
+        marginBottom: '16px',
         boxShadow: `0 2px 8px var(--shadow)`,
         border: '1px solid var(--border)'
     };
@@ -61,7 +63,7 @@ const TestConfigPage = () => {
     };
 
     const inputStyle = {
-        width: '80px', textAlign: 'center',
+        width: '70px', textAlign: 'center',
         padding: '8px', borderRadius: '8px',
         border: '1px solid var(--border)', fontSize: '18px',
         fontWeight: '700', outline: 'none',
@@ -71,16 +73,20 @@ const TestConfigPage = () => {
     return (
         <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
             <Navbar />
-            <div style={{ maxWidth: '640px', margin: '0 auto', padding: '32px 24px' }}>
+            <div style={{ maxWidth: '640px', margin: '0 auto', padding: isMobile ? '16px' : '32px 24px' }}>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
                     <button onClick={() => navigate('/home')}
                         style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
                         ←
                     </button>
                     <div>
-                        <h1 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>Configure Test</h1>
-                        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>Customize your test settings</p>
+                        <h1 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                            Configure Test
+                        </h1>
+                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                            Customize your test settings
+                        </p>
                     </div>
                 </div>
 
@@ -95,18 +101,18 @@ const TestConfigPage = () => {
                     <label style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', display: 'block', marginBottom: '12px' }}>
                         📝 Number of Questions
                     </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <button onClick={() => setTotalQuestions(Math.max(1, totalQuestions - 1))} style={counterBtnStyle}>−</button>
                         <input type="number" value={totalQuestions}
                             onChange={e => setTotalQuestions(Math.max(1, parseInt(e.target.value) || 1))}
                             min={1} style={inputStyle} />
                         <button onClick={() => setTotalQuestions(totalQuestions + 1)} style={counterBtnStyle}>+</button>
-                        <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>questions</span>
+                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>questions</span>
                     </div>
                     <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
                         {[5, 10, 15, 20, 30].map(n => (
                             <button key={n} onClick={() => setTotalQuestions(n)} style={{
-                                padding: '5px 14px', borderRadius: '20px', border: 'none',
+                                padding: '5px 12px', borderRadius: '20px', border: 'none',
                                 backgroundColor: totalQuestions === n ? 'var(--accent)' : 'var(--accent-light)',
                                 color: totalQuestions === n ? '#fff' : 'var(--accent-text)',
                                 fontSize: '13px', fontWeight: '600', cursor: 'pointer'
@@ -120,18 +126,18 @@ const TestConfigPage = () => {
                     <label style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', display: 'block', marginBottom: '12px' }}>
                         ⏱️ Total Time (minutes)
                     </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <button onClick={() => setTotalTime(Math.max(1, totalTime - 5))} style={counterBtnStyle}>−</button>
                         <input type="number" value={totalTime}
                             onChange={e => setTotalTime(Math.max(1, parseInt(e.target.value) || 1))}
                             min={1} style={inputStyle} />
                         <button onClick={() => setTotalTime(totalTime + 5)} style={counterBtnStyle}>+</button>
-                        <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>minutes</span>
+                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>minutes</span>
                     </div>
                     <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
                         {[15, 30, 45, 60, 90].map(n => (
                             <button key={n} onClick={() => setTotalTime(n)} style={{
-                                padding: '5px 14px', borderRadius: '20px', border: 'none',
+                                padding: '5px 12px', borderRadius: '20px', border: 'none',
                                 backgroundColor: totalTime === n ? 'var(--accent)' : 'var(--accent-light)',
                                 color: totalTime === n ? '#fff' : 'var(--accent-text)',
                                 fontSize: '13px', fontWeight: '600', cursor: 'pointer'
@@ -145,8 +151,8 @@ const TestConfigPage = () => {
                     <label style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>
                         🏷️ Filter by Tags (Optional)
                     </label>
-                    <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '14px' }}>
-                        Questions with selected tags will be prioritized. Leave empty for random questions.
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                        Questions with selected tags will be prioritized.
                     </p>
                     {availableTags.length === 0 ? (
                         <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No tags available yet.</p>
@@ -154,7 +160,7 @@ const TestConfigPage = () => {
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                             {availableTags.map(tag => (
                                 <button key={tag.id} onClick={() => handleTagToggle(tag.id)} style={{
-                                    padding: '6px 14px', borderRadius: '20px', border: 'none',
+                                    padding: '6px 12px', borderRadius: '20px', border: 'none',
                                     backgroundColor: selectedTagIds.includes(tag.id) ? 'var(--accent)' : 'var(--accent-light)',
                                     color: selectedTagIds.includes(tag.id) ? '#fff' : 'var(--accent-text)',
                                     fontSize: '13px', fontWeight: '600', cursor: 'pointer'
@@ -172,18 +178,18 @@ const TestConfigPage = () => {
                     backgroundColor: 'var(--accent-light)',
                     border: '1px solid var(--accent)'
                 }}>
-                    <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--accent-text)', marginBottom: '12px' }}>
+                    <h3 style={{ fontSize: '14px', fontWeight: '700', color: 'var(--accent-text)', marginBottom: '12px' }}>
                         📋 Test Summary
                     </h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '12px' }}>
                         {[
                             { label: 'Questions', value: totalQuestions },
                             { label: 'Time', value: `${totalTime} min` },
-                            { label: 'Tags Selected', value: selectedTagIds.length === 0 ? 'Any' : selectedTagIds.length },
-                            { label: 'Time/Question', value: `${Math.floor((totalTime * 60) / totalQuestions)}s` }
+                            { label: 'Tags', value: selectedTagIds.length === 0 ? 'Any' : selectedTagIds.length },
+                            { label: 'Time/Q', value: `${Math.floor((totalTime * 60) / totalQuestions)}s` }
                         ].map(item => (
-                            <div key={item.label}>
-                                <p style={{ fontSize: '12px', color: 'var(--accent-text)', opacity: 0.7 }}>{item.label}</p>
+                            <div key={item.label} style={{ backgroundColor: 'var(--bg-card)', borderRadius: '8px', padding: '10px 12px' }}>
+                                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>{item.label}</p>
                                 <p style={{ fontSize: '18px', fontWeight: '800', color: 'var(--accent-text)' }}>{item.value}</p>
                             </div>
                         ))}
@@ -196,8 +202,7 @@ const TestConfigPage = () => {
                     backgroundColor: loading ? 'var(--text-muted)' : 'var(--accent)',
                     color: '#fff', border: 'none', borderRadius: '12px',
                     fontSize: '16px', fontWeight: '800',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    letterSpacing: '0.3px'
+                    cursor: loading ? 'not-allowed' : 'pointer'
                 }}>
                     {loading ? 'Setting up test...' : '🚀 Start Test'}
                 </button>
