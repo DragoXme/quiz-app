@@ -20,29 +20,19 @@ const pool = require('../config/db');
 // Auto-submit a contest when time runs out
 const autoSubmitContest = async (contestId) => {
     try {
-        // Check if already completed
-        const contestResult = await pool.query(
-            `SELECT * FROM contests WHERE id = $1`,
-            [contestId]
-        );
+        const contestResult = await pool.query(`SELECT * FROM contests WHERE id = $1`, [contestId]);
         if (!contestResult.rows[0] || contestResult.rows[0].completed) return;
 
         const contestQuestions = await getContestQuestions(contestId);
-
         for (const cq of contestQuestions) {
-            const currentQuestion = await pool.query(
-                `SELECT * FROM questions WHERE id = $1`,
-                [cq.question_id]
-            );
+            const currentQuestion = await pool.query(`SELECT * FROM questions WHERE id = $1`, [cq.question_id]);
             if (!currentQuestion.rows[0]) continue;
             const q = currentQuestion.rows[0];
-
             let newCorrectCount = q.correct_count;
             let newWrongCount = q.wrong_count;
             let newUnattemptedCount = q.unattempted_count;
             let newMinTime = q.min_time;
             let newMaxTime = q.max_time;
-
             if (!cq.is_attempted) {
                 newUnattemptedCount += 1;
             } else if (cq.is_correct) {
@@ -50,18 +40,12 @@ const autoSubmitContest = async (contestId) => {
             } else {
                 newWrongCount += 1;
             }
-
             if (cq.is_attempted && cq.time_spent > 0) {
                 if (newMinTime === null || cq.time_spent < newMinTime) newMinTime = cq.time_spent;
                 if (newMaxTime === null || cq.time_spent > newMaxTime) newMaxTime = cq.time_spent;
             }
-
-            await updateQuestionStats(
-                cq.question_id, newCorrectCount, newWrongCount,
-                newUnattemptedCount, newMinTime, newMaxTime
-            );
+            await updateQuestionStats(cq.question_id, newCorrectCount, newWrongCount, newUnattemptedCount, newMinTime, newMaxTime);
         }
-
         await completeContest(contestId);
         console.log(`Auto-submitted contest ${contestId} after time expiry`);
     } catch (error) {
@@ -71,8 +55,8 @@ const autoSubmitContest = async (contestId) => {
 
 const configureTest = async (req, res, next) => {
     try {
-        const { totalQuestions, totalTime, tagIds, filterType } = req.body;
-        console.log('Configure test called with:', { totalQuestions, totalTime, tagIds, filterType });
+        const { totalQuestions, totalTime, tagIds, filterTypes } = req.body;
+        console.log('Configure test called with:', { totalQuestions, totalTime, tagIds, filterTypes });
 
         if (!totalQuestions || !totalTime) {
             return res.status(400).json({ message: 'Total questions and total time are required.' });
@@ -85,7 +69,7 @@ const configureTest = async (req, res, next) => {
         }
 
         const selectedQuestions = await getQuestionsForTest(
-            req.user.id, tagIds || [], totalQuestions, filterType
+            req.user.id, tagIds || [], totalQuestions, filterTypes || []
         );
 
         if (selectedQuestions.length === 0) {
@@ -93,12 +77,10 @@ const configureTest = async (req, res, next) => {
         }
 
         const contest = await createContest(req.user.id, totalQuestions, totalTime);
-
         for (const q of selectedQuestions) {
             await addContestQuestion(contest.id, q.id, q.min_time, q.max_time);
         }
 
-        // Schedule auto-submit when time runs out
         const totalMilliseconds = totalTime * 60 * 1000;
         setTimeout(() => autoSubmitContest(contest.id), totalMilliseconds);
         console.log(`Scheduled auto-submit for contest ${contest.id} in ${totalTime} minutes`);
@@ -116,18 +98,11 @@ const configureTest = async (req, res, next) => {
 const getTestQuestions = async (req, res, next) => {
     try {
         const { contestId } = req.params;
-
         const contest = await getContestById(contestId, req.user.id);
-        if (!contest) {
-            return res.status(404).json({ message: 'Contest not found.' });
-        }
-
-        if (contest.completed) {
-            return res.status(400).json({ message: 'This contest is already completed.' });
-        }
+        if (!contest) return res.status(404).json({ message: 'Contest not found.' });
+        if (contest.completed) return res.status(400).json({ message: 'This contest is already completed.' });
 
         const contestQuestions = await getContestQuestions(contestId);
-
         const questionsWithDetails = await Promise.all(
             contestQuestions.map(async (cq) => {
                 const options = cq.type !== 'fill_blank' ? await getOptionsForQuestion(cq.question_id) : [];
@@ -138,15 +113,13 @@ const getTestQuestions = async (req, res, next) => {
                     type: cq.type,
                     questionText: cq.question_text,
                     questionImageUrl: cq.question_image_url,
-                    options,
-                    tags,
+                    options, tags,
                     timeSpent: cq.time_spent,
                     chosenAnswer: cq.chosen_answer,
                     isAttempted: cq.is_attempted
                 };
             })
         );
-
         res.status(200).json({ contest, questions: questionsWithDetails });
     } catch (error) {
         next(error);
@@ -156,28 +129,17 @@ const getTestQuestions = async (req, res, next) => {
 const submitAnswer = async (req, res, next) => {
     try {
         const { contestQuestionId, chosenAnswer, timeSpent } = req.body;
-
-        if (!contestQuestionId) {
-            return res.status(400).json({ message: 'Contest question ID is required.' });
-        }
+        if (!contestQuestionId) return res.status(400).json({ message: 'Contest question ID is required.' });
 
         const cqResult = await pool.query(
-            `SELECT cq.*, q.type FROM contest_questions cq
-             JOIN questions q ON cq.question_id = q.id
-             WHERE cq.id = $1`,
+            `SELECT cq.*, q.type FROM contest_questions cq JOIN questions q ON cq.question_id = q.id WHERE cq.id = $1`,
             [contestQuestionId]
         );
-
-        if (cqResult.rows.length === 0) {
-            return res.status(404).json({ message: 'Contest question not found.' });
-        }
+        if (cqResult.rows.length === 0) return res.status(404).json({ message: 'Contest question not found.' });
 
         const cq = cqResult.rows[0];
-
         const contest = await getContestById(cq.contest_id, req.user.id);
-        if (!contest) {
-            return res.status(403).json({ message: 'Unauthorized.' });
-        }
+        if (!contest) return res.status(403).json({ message: 'Unauthorized.' });
 
         let isCorrect = false;
         let isAttempted = chosenAnswer !== null && chosenAnswer !== undefined && chosenAnswer !== '';
@@ -185,8 +147,7 @@ const submitAnswer = async (req, res, next) => {
         if (isAttempted) {
             if (cq.type === 'fill_blank') {
                 const fillAnswer = await getFillAnswerForQuestion(cq.question_id);
-                isCorrect = fillAnswer &&
-                    fillAnswer.correct_answer.toLowerCase().trim() === chosenAnswer.toLowerCase().trim();
+                isCorrect = fillAnswer && fillAnswer.correct_answer.toLowerCase().trim() === chosenAnswer.toLowerCase().trim();
             } else if (cq.type === 'mcq_single') {
                 const options = await getOptionsForQuestion(cq.question_id);
                 const correctOption = options.find(o => o.is_correct);
@@ -200,7 +161,6 @@ const submitAnswer = async (req, res, next) => {
         }
 
         await updateContestQuestion(contestQuestionId, chosenAnswer, timeSpent || 0, isCorrect, isAttempted);
-
         res.status(200).json({ message: 'Answer saved.' });
     } catch (error) {
         next(error);
@@ -210,31 +170,19 @@ const submitAnswer = async (req, res, next) => {
 const submitTest = async (req, res, next) => {
     try {
         const { contestId } = req.params;
-
         const contest = await getContestById(contestId, req.user.id);
-        if (!contest) {
-            return res.status(404).json({ message: 'Contest not found.' });
-        }
-
-        if (contest.completed) {
-            return res.status(400).json({ message: 'Contest already completed.' });
-        }
+        if (!contest) return res.status(404).json({ message: 'Contest not found.' });
+        if (contest.completed) return res.status(400).json({ message: 'Contest already completed.' });
 
         const contestQuestions = await getContestQuestions(contestId);
-
         for (const cq of contestQuestions) {
-            const currentQuestion = await pool.query(
-                `SELECT * FROM questions WHERE id = $1`,
-                [cq.question_id]
-            );
+            const currentQuestion = await pool.query(`SELECT * FROM questions WHERE id = $1`, [cq.question_id]);
             const q = currentQuestion.rows[0];
-
             let newCorrectCount = q.correct_count;
             let newWrongCount = q.wrong_count;
             let newUnattemptedCount = q.unattempted_count;
             let newMinTime = q.min_time;
             let newMaxTime = q.max_time;
-
             if (!cq.is_attempted) {
                 newUnattemptedCount += 1;
             } else if (cq.is_correct) {
@@ -242,24 +190,32 @@ const submitTest = async (req, res, next) => {
             } else {
                 newWrongCount += 1;
             }
-
             if (cq.is_attempted && cq.time_spent > 0) {
                 if (newMinTime === null || cq.time_spent < newMinTime) newMinTime = cq.time_spent;
                 if (newMaxTime === null || cq.time_spent > newMaxTime) newMaxTime = cq.time_spent;
             }
-
-            await updateQuestionStats(
-                cq.question_id, newCorrectCount, newWrongCount,
-                newUnattemptedCount, newMinTime, newMaxTime
-            );
+            await updateQuestionStats(cq.question_id, newCorrectCount, newWrongCount, newUnattemptedCount, newMinTime, newMaxTime);
         }
-
         await completeContest(contestId);
-
         res.status(200).json({ message: 'Test submitted successfully.', contestId });
     } catch (error) {
         next(error);
     }
 };
 
-module.exports = { configureTest, getTestQuestions, submitAnswer, submitTest };
+// Abandon test — deletes contest completely, no stats saved
+const abandonTest = async (req, res, next) => {
+    try {
+        const { contestId } = req.params;
+        const contest = await getContestById(contestId, req.user.id);
+        if (!contest) return res.status(404).json({ message: 'Contest not found.' });
+        if (contest.completed) return res.status(400).json({ message: 'Cannot abandon a completed contest.' });
+
+        await pool.query(`DELETE FROM contests WHERE id = $1 AND user_id = $2`, [contestId, req.user.id]);
+        res.status(200).json({ message: 'Test abandoned successfully.' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = { configureTest, getTestQuestions, submitAnswer, submitTest, abandonTest };

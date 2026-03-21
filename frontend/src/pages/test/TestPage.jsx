@@ -15,7 +15,9 @@ const TestPage = () => {
     const [answers, setAnswers] = useState({});
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [abandoning, setAbandoning] = useState(false);
     const [showSubmitModal, setShowSubmitModal] = useState(false);
+    const [showAbandonModal, setShowAbandonModal] = useState(false);
     const [showNavigator, setShowNavigator] = useState(false);
     const [error, setError] = useState('');
     const [totalTimeLeft, setTotalTimeLeft] = useState(0);
@@ -30,8 +32,7 @@ const TestPage = () => {
 
     const removeFromActiveContests = (cId) => {
         const existing = JSON.parse(localStorage.getItem('activeContests') || '[]');
-        const updated = existing.filter(c => c.contestId !== cId);
-        localStorage.setItem('activeContests', JSON.stringify(updated));
+        localStorage.setItem('activeContests', JSON.stringify(existing.filter(c => c.contestId !== cId)));
     };
 
     const fetchTest = async () => {
@@ -40,10 +41,8 @@ const TestPage = () => {
             setContest(res.data.contest);
             setQuestions(res.data.questions);
 
-            // Calculate remaining time accounting for elapsed time
             const totalSeconds = res.data.contest.total_time * 60;
             let timeLeft = totalSeconds;
-
             const activeContests = JSON.parse(localStorage.getItem('activeContests') || '[]');
             const activeContest = activeContests.find(c => c.contestId === contestId);
             if (activeContest) {
@@ -108,9 +107,7 @@ const TestPage = () => {
     const handleMultipleAnswerChange = (contestQuestionId, optionId) => {
         setAnswers(prev => {
             const current = prev[contestQuestionId] ? JSON.parse(prev[contestQuestionId]) : [];
-            const updated = current.includes(optionId)
-                ? current.filter(id => id !== optionId)
-                : [...current, optionId];
+            const updated = current.includes(optionId) ? current.filter(id => id !== optionId) : [...current, optionId];
             return { ...prev, [contestQuestionId]: JSON.stringify(updated) };
         });
     };
@@ -133,12 +130,24 @@ const TestPage = () => {
                 });
             }
             await API.post(`/tests/${contestId}/submit`);
-            // Remove this contest from active contests array
             removeFromActiveContests(contestId);
             navigate(`/test/${contestId}/result`);
         } catch (err) {
             setError('Failed to submit test.');
             setSubmitting(false);
+        }
+    };
+
+    const handleAbandon = async () => {
+        clearInterval(totalTimerRef.current);
+        setAbandoning(true);
+        try {
+            await API.delete(`/tests/${contestId}/abandon`);
+            removeFromActiveContests(contestId);
+            navigate('/home');
+        } catch (err) {
+            setError('Failed to abandon test.');
+            setAbandoning(false);
         }
     };
 
@@ -159,9 +168,7 @@ const TestPage = () => {
     const selectedAnswer = answers[currentQ?.contestQuestionId];
     const selectedMultiple = isMultiple && selectedAnswer ? JSON.parse(selectedAnswer) : [];
     const answeredCount = questions.filter(q =>
-        answers[q.contestQuestionId] !== null &&
-        answers[q.contestQuestionId] !== undefined &&
-        answers[q.contestQuestionId] !== ''
+        answers[q.contestQuestionId] !== null && answers[q.contestQuestionId] !== undefined && answers[q.contestQuestionId] !== ''
     ).length;
     const timerColor = totalTimeLeft < 60 ? 'var(--error)' : totalTimeLeft < 300 ? 'var(--warning)' : 'var(--success)';
 
@@ -171,47 +178,50 @@ const TestPage = () => {
         border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
         backgroundColor: isSelected ? 'var(--accent-light)' : 'var(--bg-hover)',
         cursor: 'pointer', transition: 'all 0.15s',
-        display: 'flex', alignItems: 'center', gap: '12px',
-        marginBottom: '8px'
+        display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px'
     });
 
     const NavigatorPanel = () => (
-        <div style={{
-            backgroundColor: 'var(--bg-card)', borderRadius: '12px',
-            padding: '20px', boxShadow: `0 2px 8px var(--shadow)`,
-            border: '1px solid var(--border)'
-        }}>
-            <p style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '14px' }}>
-                Question Navigator
-            </p>
+        <div style={{ background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', borderRadius: '14px', padding: '20px', boxShadow: '0 4px 20px var(--shadow)', border: '1px solid var(--glass-border)' }}>
+            <p style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '14px' }}>Question Navigator</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {questions.map((q, idx) => {
-                    const isAnswered = answers[q.contestQuestionId] !== null &&
-                        answers[q.contestQuestionId] !== undefined &&
-                        answers[q.contestQuestionId] !== '';
+                    const isAnswered = answers[q.contestQuestionId] !== null && answers[q.contestQuestionId] !== undefined && answers[q.contestQuestionId] !== '';
                     const isCurrent = idx === currentIndex;
                     return (
                         <button key={q.contestQuestionId} onClick={() => handleQuestionSwitch(idx)} style={{
                             width: '36px', height: '36px', borderRadius: '8px', border: 'none',
                             backgroundColor: isCurrent ? 'var(--accent)' : isAnswered ? 'var(--success)' : 'var(--bg-hover)',
                             color: isCurrent || isAnswered ? '#fff' : 'var(--text-secondary)',
-                            fontSize: '13px', fontWeight: '700', cursor: 'pointer'
+                            fontSize: '13px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s'
                         }}>{idx + 1}</button>
                     );
                 })}
             </div>
             <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {[
-                    { color: 'var(--accent)', label: 'Current' },
-                    { color: 'var(--success)', label: 'Answered' },
-                    { color: 'var(--bg-hover)', label: 'Not answered' }
-                ].map(item => (
+                {[{ color: 'var(--accent)', label: 'Current' }, { color: 'var(--success)', label: 'Answered' }, { color: 'var(--bg-hover)', label: 'Not answered' }].map(item => (
                     <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <div style={{ width: '14px', height: '14px', borderRadius: '3px', backgroundColor: item.color, border: '1px solid var(--border)' }} />
                         <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{item.label}</span>
                     </div>
                 ))}
             </div>
+
+            {/* Leave Test button in navigator */}
+            {!isMobile && (
+                <button onClick={() => setShowAbandonModal(true)} style={{
+                    marginTop: '16px', width: '100%', padding: '8px',
+                    backgroundColor: 'var(--error-light)', color: 'var(--error)',
+                    border: '1px solid var(--error)', borderRadius: '8px',
+                    fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                    transition: 'all 0.15s'
+                }}
+                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--error)'; e.currentTarget.style.color = '#fff'; }}
+                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--error-light)'; e.currentTarget.style.color = 'var(--error)'; }}
+                >
+                    🚪 Leave Test
+                </button>
+            )}
         </div>
     );
 
@@ -219,38 +229,48 @@ const TestPage = () => {
         <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
             {/* Top Bar */}
             <div style={{
-                backgroundColor: 'var(--navbar-bg)', borderBottom: '1px solid var(--border)',
+                backgroundColor: 'var(--navbar-bg)', borderBottom: '1px solid var(--navbar-border)',
+                backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
                 padding: isMobile ? '0 12px' : '0 24px', height: '60px',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                position: 'sticky', top: 0, zIndex: 100, boxShadow: `0 1px 4px var(--shadow)`
+                position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 1px 12px var(--shadow)'
             }}>
-                <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: '800', color: 'var(--text-primary)' }}>
-                    📝 {isMobile ? 'Test' : 'Test in Progress'}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                        📝 {isMobile ? 'Test' : 'Test in Progress'}
+                    </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '14px' }}>
                     {!isMobile && (
-                        <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                             {answeredCount}/{questions.length} answered
-                        </div>
+                        </span>
                     )}
-                    <div style={{
-                        fontSize: isMobile ? '16px' : '20px', fontWeight: '800', color: timerColor,
-                        backgroundColor: 'var(--bg-hover)', padding: '6px 10px', borderRadius: '8px'
-                    }}>
+                    <div style={{ fontSize: isMobile ? '15px' : '18px', fontWeight: '800', color: timerColor, background: 'var(--glass-bg)', backdropFilter: 'blur(8px)', padding: '5px 10px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                         ⏱ {formatTimerDisplay(totalTimeLeft)}
                     </div>
                     {isMobile && (
                         <button onClick={() => setShowNavigator(!showNavigator)} style={{
-                            padding: '6px 10px', backgroundColor: 'var(--accent-light)',
-                            color: 'var(--accent-text)', border: 'none', borderRadius: '8px',
+                            padding: '5px 9px', backgroundColor: 'var(--accent-light)',
+                            color: 'var(--accent-text)', border: 'none', borderRadius: '7px',
                             fontSize: '12px', fontWeight: '700', cursor: 'pointer'
                         }}>{answeredCount}/{questions.length}</button>
                     )}
+                    {/* Mobile leave button */}
+                    {isMobile && (
+                        <button onClick={() => setShowAbandonModal(true)} style={{
+                            padding: '5px 9px', backgroundColor: 'var(--error-light)',
+                            color: 'var(--error)', border: 'none', borderRadius: '7px',
+                            fontSize: '12px', fontWeight: '700', cursor: 'pointer'
+                        }}>🚪</button>
+                    )}
                     <button onClick={() => setShowSubmitModal(true)} disabled={submitting} style={{
-                        padding: isMobile ? '6px 10px' : '8px 18px', backgroundColor: 'var(--accent)',
+                        padding: isMobile ? '6px 10px' : '8px 18px',
+                        background: 'var(--gradient-accent)',
                         color: '#fff', border: 'none', borderRadius: '8px',
                         fontSize: isMobile ? '12px' : '13px', fontWeight: '700',
-                        cursor: submitting ? 'not-allowed' : 'pointer'
+                        cursor: submitting ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 2px 8px var(--shadow)'
                     }}>{submitting ? '...' : 'Submit'}</button>
                 </div>
             </div>
@@ -263,11 +283,9 @@ const TestPage = () => {
 
             <div style={{ maxWidth: '1000px', margin: '0 auto', padding: isMobile ? '16px' : '24px', display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '12px', padding: isMobile ? '16px' : '28px', boxShadow: `0 2px 8px var(--shadow)`, border: '1px solid var(--border)' }}>
+                    <div style={{ background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', borderRadius: '16px', padding: isMobile ? '16px' : '28px', boxShadow: '0 4px 20px var(--shadow)', border: '1px solid var(--glass-border)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                            <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>
-                                Q {currentIndex + 1} of {questions.length}
-                            </span>
+                            <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>Q {currentIndex + 1} of {questions.length}</span>
                             <span style={{ padding: '4px 10px', borderRadius: '20px', backgroundColor: 'var(--accent-light)', color: 'var(--accent-text)', fontSize: '11px', fontWeight: '700' }}>
                                 {currentQ?.type === 'mcq_single' ? 'Single' : currentQ?.type === 'mcq_multiple' ? 'Multiple' : 'Fill Blank'}
                             </span>
@@ -286,7 +304,7 @@ const TestPage = () => {
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                 {currentQ.options?.map((opt, idx) => (
                                     <div key={opt.id} onClick={() => handleAnswerChange(currentQ.contestQuestionId, opt.id)} style={optionStyle(selectedAnswer === opt.id)}>
-                                        <div style={{ width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0, border: `2px solid ${selectedAnswer === opt.id ? 'var(--accent)' : 'var(--border)'}`, backgroundColor: selectedAnswer === opt.id ? 'var(--accent)' : 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <div style={{ width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0, border: `2px solid ${selectedAnswer === opt.id ? 'var(--accent)' : 'var(--border)'}`, backgroundColor: selectedAnswer === opt.id ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                             {selectedAnswer === opt.id && <div style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#fff' }} />}
                                         </div>
                                         <span style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: selectedAnswer === opt.id ? '600' : '400' }}>
@@ -303,7 +321,7 @@ const TestPage = () => {
                                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>Select all correct answers</p>
                                 {currentQ.options?.map((opt, idx) => (
                                     <div key={opt.id} onClick={() => handleMultipleAnswerChange(currentQ.contestQuestionId, opt.id)} style={optionStyle(selectedMultiple.includes(opt.id))}>
-                                        <div style={{ width: '20px', height: '20px', borderRadius: '4px', flexShrink: 0, border: `2px solid ${selectedMultiple.includes(opt.id) ? 'var(--accent)' : 'var(--border)'}`, backgroundColor: selectedMultiple.includes(opt.id) ? 'var(--accent)' : 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <div style={{ width: '20px', height: '20px', borderRadius: '4px', flexShrink: 0, border: `2px solid ${selectedMultiple.includes(opt.id) ? 'var(--accent)' : 'var(--border)'}`, backgroundColor: selectedMultiple.includes(opt.id) ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                             {selectedMultiple.includes(opt.id) && <span style={{ color: '#fff', fontSize: '11px', fontWeight: '700' }}>✓</span>}
                                         </div>
                                         <span style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: selectedMultiple.includes(opt.id) ? '600' : '400' }}>
@@ -321,13 +339,13 @@ const TestPage = () => {
                                 <input type="text" value={selectedAnswer || ''}
                                     onChange={e => handleAnswerChange(currentQ.contestQuestionId, e.target.value)}
                                     placeholder="Enter your answer..."
-                                    style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', border: '2px solid var(--border)', fontSize: '15px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)' }} />
+                                    style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '2px solid var(--input-border)', fontSize: '15px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', background: 'var(--glass-bg)', color: 'var(--text-primary)' }} />
                             </div>
                         )}
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px', gap: '12px' }}>
-                            <button onClick={() => handleQuestionSwitch(currentIndex - 1)} disabled={currentIndex === 0} style={{ padding: isMobile ? '10px 16px' : '10px 24px', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: currentIndex === 0 ? 'not-allowed' : 'pointer', opacity: currentIndex === 0 ? 0.4 : 1 }}>← Prev</button>
-                            <button onClick={() => handleQuestionSwitch(currentIndex + 1)} disabled={currentIndex === questions.length - 1} style={{ padding: isMobile ? '10px 16px' : '10px 24px', backgroundColor: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: currentIndex === questions.length - 1 ? 'not-allowed' : 'pointer', opacity: currentIndex === questions.length - 1 ? 0.4 : 1 }}>Next →</button>
+                            <button onClick={() => handleQuestionSwitch(currentIndex - 1)} disabled={currentIndex === 0} style={{ padding: isMobile ? '10px 16px' : '10px 24px', background: 'var(--glass-bg)', backdropFilter: 'blur(8px)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: currentIndex === 0 ? 'not-allowed' : 'pointer', opacity: currentIndex === 0 ? 0.4 : 1 }}>← Prev</button>
+                            <button onClick={() => handleQuestionSwitch(currentIndex + 1)} disabled={currentIndex === questions.length - 1} style={{ padding: isMobile ? '10px 16px' : '10px 24px', background: 'var(--gradient-accent)', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: currentIndex === questions.length - 1 ? 'not-allowed' : 'pointer', opacity: currentIndex === questions.length - 1 ? 0.4 : 1, boxShadow: '0 2px 8px var(--shadow)' }}>Next →</button>
                         </div>
                     </div>
                 </div>
@@ -339,6 +357,7 @@ const TestPage = () => {
                 )}
             </div>
 
+            {/* Submit Modal */}
             <ConfirmModal
                 isOpen={showSubmitModal}
                 title="Submit Test"
@@ -348,6 +367,18 @@ const TestPage = () => {
                 confirmText="Yes, Submit"
                 cancelText="Continue Test"
                 confirmColor="var(--accent)"
+            />
+
+            {/* Abandon Modal */}
+            <ConfirmModal
+                isOpen={showAbandonModal}
+                title="⚠️ Leave Test"
+                message="Are you sure you want to leave? This test will be permanently deleted and nothing will be saved — no answers, no stats, nothing."
+                onConfirm={handleAbandon}
+                onCancel={() => setShowAbandonModal(false)}
+                confirmText={abandoning ? 'Leaving...' : 'Yes, Leave & Delete'}
+                cancelText="Stay in Test"
+                confirmColor="var(--error)"
             />
         </div>
     );

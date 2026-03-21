@@ -11,7 +11,7 @@ const TestConfigPage = () => {
     const [totalTime, setTotalTime] = useState(30);
     const [availableTags, setAvailableTags] = useState([]);
     const [selectedTagIds, setSelectedTagIds] = useState([]);
-    const [filterType, setFilterType] = useState('');
+    const [filterTypes, setFilterTypes] = useState([]);  // now an array
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -30,8 +30,10 @@ const TestConfigPage = () => {
         );
     };
 
-    const handleFilterType = (type) => {
-        setFilterType(prev => prev === type ? '' : type);
+    const handleFilterTypeToggle = (type) => {
+        setFilterTypes(prev =>
+            prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+        );
     };
 
     const handleStartTest = async () => {
@@ -41,7 +43,7 @@ const TestConfigPage = () => {
         setLoading(true);
         try {
             const res = await API.post('/tests/configure', {
-                totalQuestions, totalTime, tagIds: selectedTagIds, filterType
+                totalQuestions, totalTime, tagIds: selectedTagIds, filterTypes
             });
             const contestId = res.data.contestId;
             const totalSeconds = totalTime * 60;
@@ -69,20 +71,20 @@ const TestConfigPage = () => {
     };
 
     const counterBtnStyle = {
-        width: '38px', height: '38px',
-        borderRadius: '10px', border: '1px solid var(--border)',
-        background: 'var(--glass-bg)', backdropFilter: 'blur(8px)',
-        fontSize: '18px', cursor: 'pointer',
+        width: '38px', height: '38px', borderRadius: '10px',
+        border: '1px solid var(--border)', background: 'var(--glass-bg)',
+        backdropFilter: 'blur(8px)', fontSize: '18px', cursor: 'pointer',
         fontWeight: '700', color: 'var(--text-primary)'
     };
 
     const inputStyle = {
-        width: '70px', textAlign: 'center',
-        padding: '8px', borderRadius: '10px',
-        border: '1.5px solid var(--input-border)', fontSize: '18px',
-        fontWeight: '700', outline: 'none',
-        background: 'var(--glass-bg)', color: 'var(--text-primary)'
+        width: '70px', textAlign: 'center', padding: '8px', borderRadius: '10px',
+        border: '1.5px solid var(--input-border)', fontSize: '18px', fontWeight: '700',
+        outline: 'none', background: 'var(--glass-bg)', color: 'var(--text-primary)'
     };
+
+    const filterSummary = filterTypes.length === 0 ? 'None'
+        : filterTypes.map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(' + ');
 
     return (
         <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
@@ -143,24 +145,38 @@ const TestConfigPage = () => {
                     </div>
                 </div>
 
-                {/* Question Filter */}
+                {/* Question Filter — multi-select */}
                 <div style={glassCard}>
-                    <label style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>🎯 Question Filter (Optional)</label>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>Focus on questions that need more practice.</p>
+                    <label style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>🎯 Question Filter (Optional)</label>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>Select one or both to focus on specific questions.</p>
                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                        <button onClick={() => handleFilterType('struggling')} style={{
-                            padding: '8px 16px', borderRadius: '20px', border: 'none',
-                            backgroundColor: filterType === 'struggling' ? 'var(--error)' : 'var(--error-light)',
-                            color: filterType === 'struggling' ? '#fff' : 'var(--error)',
-                            fontSize: '13px', fontWeight: '600', cursor: 'pointer'
-                        }}>🔴 Struggling Questions</button>
-                        <button onClick={() => handleFilterType('unattempted')} style={{
-                            padding: '8px 16px', borderRadius: '20px', border: 'none',
-                            backgroundColor: filterType === 'unattempted' ? 'var(--warning)' : 'var(--warning-light)',
-                            color: filterType === 'unattempted' ? '#fff' : 'var(--warning)',
-                            fontSize: '13px', fontWeight: '600', cursor: 'pointer'
-                        }}>⏭️ Unattempted Questions</button>
+                        {[
+                            { key: 'struggling', label: '🔴 Struggling', activeColor: 'var(--error)', lightColor: 'var(--error-light)', textColor: 'var(--error)' },
+                            { key: 'unattempted', label: '⏭️ Unattempted', activeColor: 'var(--warning)', lightColor: 'var(--warning-light)', textColor: 'var(--warning)' }
+                        ].map(f => {
+                            const isActive = filterTypes.includes(f.key);
+                            return (
+                                <button key={f.key} onClick={() => handleFilterTypeToggle(f.key)} style={{
+                                    padding: '8px 16px', borderRadius: '20px',
+                                    border: isActive ? 'none' : `1.5px solid ${f.textColor}`,
+                                    backgroundColor: isActive ? f.activeColor : f.lightColor,
+                                    color: isActive ? '#fff' : f.textColor,
+                                    fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+                                    transition: 'all 0.15s',
+                                    boxShadow: isActive ? '0 3px 10px rgba(0,0,0,0.15)' : 'none',
+                                    display: 'flex', alignItems: 'center', gap: '6px'
+                                }}>
+                                    {isActive && <span style={{ fontSize: '11px' }}>✓</span>}
+                                    {f.label}
+                                </button>
+                            );
+                        })}
                     </div>
+                    {filterTypes.length > 0 && (
+                        <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px' }}>
+                            Selected: <strong style={{ color: 'var(--text-secondary)' }}>{filterSummary}</strong>
+                        </p>
+                    )}
                 </div>
 
                 {/* Tag Selection */}
@@ -177,7 +193,8 @@ const TestConfigPage = () => {
                                     background: selectedTagIds.includes(tag.id) ? 'var(--gradient-accent)' : 'var(--accent-light)',
                                     color: selectedTagIds.includes(tag.id) ? '#fff' : 'var(--accent-text)',
                                     fontSize: '13px', fontWeight: '600', cursor: 'pointer',
-                                    boxShadow: selectedTagIds.includes(tag.id) ? '0 2px 8px var(--shadow)' : 'none'
+                                    boxShadow: selectedTagIds.includes(tag.id) ? '0 2px 8px var(--shadow)' : 'none',
+                                    transition: 'all 0.15s'
                                 }}>{selectedTagIds.includes(tag.id) ? '✓ ' : ''}{tag.name}</button>
                             ))}
                         </div>
@@ -192,11 +209,11 @@ const TestConfigPage = () => {
                             { label: 'Questions', value: totalQuestions },
                             { label: 'Time', value: `${totalTime} min` },
                             { label: 'Tags', value: selectedTagIds.length === 0 ? 'Any' : selectedTagIds.length },
-                            { label: 'Filter', value: filterType ? filterType : 'None' }
+                            { label: 'Filter', value: filterSummary }
                         ].map(item => (
                             <div key={item.label} style={{ background: 'var(--glass-bg)', backdropFilter: 'blur(8px)', borderRadius: '10px', padding: '10px 12px', border: '1px solid var(--glass-border)' }}>
                                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>{item.label}</p>
-                                <p style={{ fontSize: '16px', fontWeight: '800', color: 'var(--accent-text)' }}>{item.value}</p>
+                                <p style={{ fontSize: '14px', fontWeight: '800', color: 'var(--accent-text)' }}>{item.value}</p>
                             </div>
                         ))}
                     </div>
@@ -207,9 +224,9 @@ const TestConfigPage = () => {
                     width: '100%', padding: '16px',
                     background: loading ? 'var(--border)' : 'var(--gradient-accent)',
                     color: '#fff', border: 'none', borderRadius: '14px',
-                    fontSize: '16px', fontWeight: '800',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    boxShadow: loading ? 'none' : '0 6px 20px rgba(99,102,241,0.4)'
+                    fontSize: '16px', fontWeight: '800', cursor: loading ? 'not-allowed' : 'pointer',
+                    boxShadow: loading ? 'none' : '0 6px 20px rgba(99,102,241,0.4)',
+                    transition: 'all 0.2s'
                 }}>
                     {loading ? 'Setting up test...' : '🚀 Start Test'}
                 </button>
