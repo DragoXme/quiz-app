@@ -8,8 +8,8 @@
    LIGHT THEME
    ============================================ */
 :root[data-theme="light"] {
-    --bg-main: #DDDEFF;
-    --bg-card: rgba(255, 255, 255, 0.72);
+    --bg-main: #E8EAFF;
+    --bg-card: rgba(255, 255, 255, 0.70);
     --bg-hover: rgba(255, 255, 255, 0.88);
     --bg-input: rgba(255, 255, 255, 0.88);
     --text-primary: #1A1A2E;
@@ -38,7 +38,7 @@
     --table-alt: rgba(99, 102, 241, 0.03);
     --gradient-accent: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
     --gradient-card: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(236,238,255,0.7));
-    --glass-bg: rgba(255, 255, 255, 0.58);
+    --glass-bg: rgba(255, 255, 255, 0.55);
     --glass-border: rgba(255, 255, 255, 0.80);
     --glass-blur: blur(16px);
 }
@@ -48,9 +48,9 @@
    ============================================ */
 :root[data-theme="dark"] {
     --bg-main: #07070F;
-    --bg-card: rgba(16, 16, 32, 0.82);
-    --bg-hover: rgba(26, 26, 50, 0.92);
-    --bg-input: rgba(20, 20, 42, 0.92);
+    --bg-card: rgba(16, 16, 32, 0.80);
+    --bg-hover: rgba(26, 26, 50, 0.90);
+    --bg-input: rgba(20, 20, 42, 0.90);
     --text-primary: #E8E8F8;
     --text-secondary: #9898C0;
     --text-muted: #5A5A80;
@@ -77,7 +77,7 @@
     --table-alt: rgba(124, 127, 255, 0.04);
     --gradient-accent: linear-gradient(135deg, #7C7FFF 0%, #A78BFA 100%);
     --gradient-card: linear-gradient(145deg, rgba(16,16,32,0.95), rgba(26,16,46,0.82));
-    --glass-bg: rgba(16, 16, 32, 0.65);
+    --glass-bg: rgba(16, 16, 32, 0.62);
     --glass-border: rgba(124, 127, 255, 0.24);
     --glass-blur: blur(16px);
 }
@@ -85,72 +85,110 @@
 /* ============================================
    ANIMATIONS
    ============================================ */
-@keyframes gradientShift {
-    0%   { background-position: 0%   50%; }
-    50%  { background-position: 100% 50%; }
-    100% { background-position: 0%   50%; }
+@keyframes blobMove1 {
+    0%, 100% { transform: translate(0px, 0px)   scale(1);    }
+    33%       { transform: translate(40px, -30px) scale(1.08); }
+    66%       { transform: translate(-20px, 20px) scale(0.95); }
 }
-@keyframes slideDown {
-    from { opacity: 0; transform: translateY(-8px); }
-    to   { opacity: 1; transform: translateY(0); }
+@keyframes blobMove2 {
+    0%, 100% { transform: translate(0px, 0px)    scale(1);    }
+    33%       { transform: translate(-50px, 30px) scale(1.05); }
+    66%       { transform: translate(25px, -25px) scale(1.10); }
 }
-@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
-@keyframes pulse   { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+@keyframes blobMove3 {
+    0%, 100% { transform: translate(0px, 0px)   scale(1);    }
+    33%       { transform: translate(30px, 40px) scale(0.92); }
+    66%       { transform: translate(-40px, -15px) scale(1.06); }
+}
+@keyframes blobMove4 {
+    0%, 100% { transform: translate(0px, 0px)    scale(1);    }
+    50%       { transform: translate(-30px, -40px) scale(1.08); }
+}
+@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn    { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pulse     { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 
 .slide-down { animation: slideDown 0.3s ease forwards; }
 .fade-in    { animation: fadeIn   0.2s ease forwards; }
 .pulse      { animation: pulse    2s   ease infinite; }
 
 /* ============================================
-   BASE — shared
+   BASE
    ============================================ */
+html { height: 100%; }
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
         Ubuntu, Cantarell, sans-serif;
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
-    min-height: 100vh;
+    min-height: 100%;
+    position: relative;
+    overflow-x: hidden;
     transition: color 0.3s ease;
 }
 
-/* ============================================
-   LIGHT MODE BACKGROUND
-   Animated gradient that slowly shifts colors
-   ============================================ */
-:root[data-theme="light"] body {
-    background: linear-gradient(
-        -45deg,
-        #c7c9ff,   /* soft indigo */
-        #d8b4fe,   /* soft purple */
-        #c7d2fe,   /* soft blue-indigo */
-        #fbcfe8,   /* soft pink */
-        #bfdbfe,   /* soft blue */
-        #a5f3fc,   /* soft cyan */
-        #d1fae5,   /* soft green */
-        #fde68a    /* soft amber */
-    );
-    background-size: 400% 400%;
-    animation: gradientShift 20s ease infinite;
+/* The moving blobs live on a fixed pseudo-element BEHIND everything */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
 }
 
 /* ============================================
-   DARK MODE BACKGROUND
-   Deep animated aurora gradient
+   LIGHT MODE — vivid blob background
+   ============================================ */
+:root[data-theme="light"] body {
+    background-color: #E0E2FF;
+}
+
+:root[data-theme="light"] body::before {
+    background:
+        /* violet — top-left */
+        radial-gradient(ellipse 55% 45% at 5%  5%,  #818cf8 0%, transparent 70%),
+        /* purple — top-right */
+        radial-gradient(ellipse 50% 42% at 95% 8%,  #a78bfa 0%, transparent 70%),
+        /* pink — bottom-right */
+        radial-gradient(ellipse 52% 44% at 92% 92%, #f472b6 0%, transparent 70%),
+        /* blue — bottom-left */
+        radial-gradient(ellipse 48% 40% at 8%  90%, #60a5fa 0%, transparent 70%),
+        /* teal — center */
+        radial-gradient(ellipse 38% 30% at 50% 50%, #34d399 0%, transparent 65%),
+        /* amber — mid right */
+        radial-gradient(ellipse 30% 25% at 80% 48%, #fbbf24 0%, transparent 65%),
+        /* rose — mid left */
+        radial-gradient(ellipse 28% 22% at 22% 52%, #fb7185 0%, transparent 65%);
+    opacity: 0.42;
+    animation: blobMove1 18s ease-in-out infinite alternate;
+}
+
+/* ============================================
+   DARK MODE — glowing aurora blob background
    ============================================ */
 :root[data-theme="dark"] body {
-    background: linear-gradient(
-        -45deg,
-        #0a0520,   /* deep violet-black */
-        #0d1040,   /* deep navy */
-        #12052a,   /* deep purple-black */
-        #0a1628,   /* deep blue-black */
-        #1a0535,   /* rich violet */
-        #050d25,   /* deep indigo */
-        #0f1535,   /* deep blue */
-        #1a0828    /* deep magenta-black */
-    );
-    background-size: 400% 400%;
-    animation: gradientShift 20s ease infinite;
+    background-color: #06060E;
+}
+
+:root[data-theme="dark"] body::before {
+    background:
+        /* indigo glow — top-left */
+        radial-gradient(ellipse 55% 45% at 5%  5%,  #4f46e5 0%, transparent 65%),
+        /* violet glow — top-right */
+        radial-gradient(ellipse 50% 42% at 95% 8%,  #7c3aed 0%, transparent 65%),
+        /* pink glow — bottom-right */
+        radial-gradient(ellipse 52% 44% at 92% 92%, #db2777 0%, transparent 65%),
+        /* blue glow — bottom-left */
+        radial-gradient(ellipse 48% 40% at 8%  90%, #2563eb 0%, transparent 65%),
+        /* teal glow — center */
+        radial-gradient(ellipse 38% 30% at 50% 50%, #059669 0%, transparent 60%),
+        /* amber glow — mid right */
+        radial-gradient(ellipse 30% 25% at 80% 48%, #d97706 0%, transparent 60%),
+        /* crimson — mid left */
+        radial-gradient(ellipse 28% 22% at 22% 52%, #dc2626 0%, transparent 60%);
+    opacity: 0.38;
+    animation: blobMove2 20s ease-in-out infinite alternate;
 }
 
 a { text-decoration: none; color: inherit; }
@@ -163,7 +201,4 @@ a { text-decoration: none; color: inherit; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
-/* ============================================
-   SELECTION
-   ============================================ */
 ::selection { background: var(--accent-light); color: var(--accent-text); }
