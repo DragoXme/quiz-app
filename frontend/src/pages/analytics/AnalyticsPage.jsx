@@ -100,7 +100,7 @@ const AnalyticsPage = () => {
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: isMobile ? '12px' : '14px', minWidth: '340px' }}>
                                 <thead>
                                     <tr style={{ backgroundColor: 'var(--table-header)' }}>
-                                        {['Tag', 'Total', 'Struggling', 'Status'].map(h => (
+                                        {['Tag', 'Total Questions', 'Unattempted', 'Struggling', 'Status'].map(h => (
                                             <th key={h} style={{
                                                 padding: isMobile ? '10px 10px' : '14px 16px',
                                                 textAlign: 'left', fontWeight: '700',
@@ -132,6 +132,9 @@ const AnalyticsPage = () => {
                                                     }}>{row.tag_name}</span>
                                                 </td>
                                                 <td style={{ padding: isMobile ? '10px' : '14px 16px', fontWeight: '700', color: 'var(--text-primary)' }}>{total}</td>
+                                                <td style={{ padding: isMobile ? '10px' : '14px 16px', fontWeight: '700', color: 'var(--warning)' }}>
+                                                {parseInt(row.total_unattempted) || 0}
+                                                </td>
                                                 <td style={{ padding: isMobile ? '10px' : '14px 16px' }}>
                                                     <span style={{ fontWeight: '700', color: struggling > 0 ? 'var(--error)' : 'var(--success)' }}>
                                                         {struggling}
@@ -158,7 +161,7 @@ const AnalyticsPage = () => {
                         </div>
                         <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', backgroundColor: 'var(--bg-hover)' }}>
                             <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>
-                                * Struggling = correct + unattempted ≤ wrong attempts
+                                * Struggling = correct ≤ wrong attempts
                             </p>
                         </div>
                     </div>
@@ -190,9 +193,12 @@ const AnalyticsPage = () => {
                                             {row.tag_name}
                                         </span>
                                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
-                                            <span style={{ fontSize: '11px', color: 'var(--accent-text)', fontWeight: '700' }}>{total}</span>
+                                            <span style={{ fontSize: '11px', color: 'var(--accent-text)', fontWeight: '700' }}>{total} total</span>
+                                            {parseInt(row.total_unattempted) > 0 && (
+                                                <span style={{ fontSize: '11px', color: 'var(--warning)', fontWeight: '700' }}>{parseInt(row.total_unattempted)} ⏭️</span>
+                                            )}
                                             {struggling > 0 && (
-                                                <span style={{ fontSize: '11px', color: 'var(--error)', fontWeight: '700' }}>({struggling} 🔴)</span>
+                                                <span style={{ fontSize: '11px', color: 'var(--error)', fontWeight: '700' }}>{struggling} 🔴</span>
                                             )}
                                         </div>
                                     </div>
@@ -219,6 +225,7 @@ const AnalyticsPage = () => {
                         <div style={{ display: 'flex', gap: '16px', marginTop: '16px', flexWrap: 'wrap' }}>
                             {[
                                 { color: 'var(--accent)', label: 'Total Questions' },
+                                { color: 'var(--warning)', label: 'Unattempted' },
                                 { color: 'var(--error)', label: 'Struggling' }
                             ].map(item => (
                                 <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
