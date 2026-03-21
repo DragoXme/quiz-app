@@ -49,8 +49,12 @@ const AnalyticsPage = () => {
                             ←
                         </button>
                         <div>
-                            <h1 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '800', color: 'var(--text-primary)' }}>Analytics</h1>
-                            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>Tag-wise performance</p>
+                            <h1 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                                Analytics
+                            </h1>
+                            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                Tag-wise performance
+                            </p>
                         </div>
                     </div>
                     <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
@@ -111,7 +115,6 @@ const AnalyticsPage = () => {
                                     {analytics.map((row, idx) => {
                                         const total = parseInt(row.total_questions) || 0;
                                         const struggling = parseInt(row.struggling_questions) || 0;
-                                        const unattempted = parseInt(row.unattempted_questions) || 0;
                                         const ratio = total > 0 ? struggling / total : 0;
                                         const statusColor = ratio === 0 ? 'var(--success)' : ratio < 0.3 ? 'var(--warning)' : 'var(--error)';
                                         const statusLabel = ratio === 0 ? '✅ Good' : ratio < 0.3 ? '⚠️ Fair' : '🔴 Poor';
@@ -129,7 +132,9 @@ const AnalyticsPage = () => {
                                                     }}>{row.tag_name}</span>
                                                 </td>
                                                 <td style={{ padding: isMobile ? '10px' : '14px 16px', fontWeight: '700', color: 'var(--text-primary)' }}>{total}</td>
-                                                <td style={{ padding: isMobile ? '10px' : '14px 16px', fontWeight: '700', color: 'var(--warning)' }}>{unattempted}</td>
+                                                <td style={{ padding: isMobile ? '10px' : '14px 16px', fontWeight: '700', color: 'var(--warning)' }}>
+                                                {parseInt(row.total_unattempted) || 0}
+                                                </td>
                                                 <td style={{ padding: isMobile ? '10px' : '14px 16px' }}>
                                                     <span style={{ fontWeight: '700', color: struggling > 0 ? 'var(--error)' : 'var(--success)' }}>
                                                         {struggling}
@@ -156,7 +161,7 @@ const AnalyticsPage = () => {
                         </div>
                         <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', backgroundColor: 'var(--bg-hover)' }}>
                             <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>
-                                * Struggling = correct attempts ≤ wrong attempts
+                                * Struggling = correct ≤ wrong attempts
                             </p>
                         </div>
                     </div>
@@ -172,65 +177,63 @@ const AnalyticsPage = () => {
                             Questions per Tag
                         </h3>
                         {analytics.map((row, idx) => {
-                            const total = parseInt(row.total_questions) || 0;
-                            const struggling = parseInt(row.struggling_questions) || 0;
-                            const unattempted = parseInt(row.unattempted_questions) || 0;
-                            const totalWidth = (total / maxQuestions) * 100;
-                            const strugglingPct = total > 0 ? (struggling / total) * 100 : 0;
-                            const unattemptedPct = total > 0 ? (unattempted / total) * 100 : 0;
-                            const strugglingWidth = (strugglingPct / 100) * totalWidth;
-                            const unattemptedWidth = (unattemptedPct / 100) * totalWidth;
+                        const total = parseInt(row.total_questions) || 0;
+                        const struggling = parseInt(row.struggling_questions) || 0;
+                        const unattempted = parseInt(row.total_unattempted) || 0;
+                        const totalWidth = (total / maxQuestions) * 100;
+                        const strugglingWidth = total > 0 ? (struggling / total) * totalWidth : 0;
+                        const unattemptedWidth = total > 0 ? (unattempted / total) * totalWidth : 0;
 
-                            return (
-                                <div key={idx} style={{ marginBottom: '16px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', gap: '8px' }}>
-                                        <span style={{
-                                            fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)',
-                                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                            maxWidth: isMobile ? '120px' : '200px'
-                                        }}>
-                                            {row.tag_name}
-                                        </span>
-                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
-                                            <span style={{ fontSize: '11px', color: 'var(--accent-text)', fontWeight: '700' }}>{total} total</span>
-                                            {unattempted > 0 && (
-                                                <span style={{ fontSize: '11px', color: 'var(--warning)', fontWeight: '700' }}>{unattempted} ⏭️</span>
-                                            )}
-                                            {struggling > 0 && (
-                                                <span style={{ fontSize: '11px', color: 'var(--error)', fontWeight: '700' }}>{struggling} 🔴</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div style={{ height: '24px', backgroundColor: 'var(--bg-hover)', borderRadius: '6px', overflow: 'hidden', position: 'relative' }}>
-                                        {/* Total bar (blue) - full width background */}
-                                        <div style={{
-                                            position: 'absolute', left: 0, top: 0,
-                                            height: '100%', width: `${totalWidth}%`,
-                                            backgroundColor: 'var(--accent)',
-                                            transition: 'width 0.4s'
-                                        }} />
-                                        {/* Struggling bar (red) - starts from left */}
-                                        {struggling > 0 && (
-                                            <div style={{
-                                                position: 'absolute', left: 0, top: 0,
-                                                height: '100%', width: `${strugglingWidth}%`,
-                                                backgroundColor: 'var(--error)',
-                                                transition: 'width 0.4s'
-                                            }} />
-                                        )}
-                                        {/* Unattempted bar (orange) - starts after struggling */}
+                        return (
+                            <div key={idx} style={{ marginBottom: '16px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', gap: '8px' }}>
+                                    <span style={{
+                                        fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)',
+                                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                        maxWidth: isMobile ? '120px' : '200px'
+                                    }}>
+                                        {row.tag_name}
+                                    </span>
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+                                        <span style={{ fontSize: '11px', color: 'var(--accent-text)', fontWeight: '700' }}>{total} total</span>
                                         {unattempted > 0 && (
-                                            <div style={{
-                                                position: 'absolute', left: `${strugglingWidth}%`, top: 0,
-                                                height: '100%', width: `${unattemptedWidth}%`,
-                                                backgroundColor: 'var(--warning)',
-                                                transition: 'width 0.4s'
-                                            }} />
+                                            <span style={{ fontSize: '11px', color: 'var(--warning)', fontWeight: '700' }}>{unattempted} ⏭️</span>
+                                        )}
+                                        {struggling > 0 && (
+                                            <span style={{ fontSize: '11px', color: 'var(--error)', fontWeight: '700' }}>{struggling} 🔴</span>
                                         )}
                                     </div>
                                 </div>
-                            );
-                        })}
+                                <div style={{ height: '24px', backgroundColor: 'var(--bg-hover)', borderRadius: '6px', overflow: 'hidden', position: 'relative' }}>
+                                    {/* Total bar (blue) - full width background */}
+                                    <div style={{
+                                        position: 'absolute', left: 0, top: 0,
+                                        height: '100%', width: `${totalWidth}%`,
+                                        backgroundColor: 'var(--accent)',
+                                        borderRadius: '6px', transition: 'width 0.4s'
+                                    }} />
+                                    {/* Struggling bar (red) - starts from left */}
+                                    {struggling > 0 && (
+                                        <div style={{
+                                            position: 'absolute', left: 0, top: 0,
+                                            height: '100%', width: `${strugglingWidth}%`,
+                                            backgroundColor: 'var(--error)',
+                                            borderRadius: '6px', transition: 'width 0.4s'
+                                        }} />
+                                    )}
+                                    {/* Unattempted bar (orange) - starts after struggling */}
+                                    {unattempted > 0 && (
+                                        <div style={{
+                                            position: 'absolute', left: `${strugglingWidth}%`, top: 0,
+                                            height: '100%', width: `${unattemptedWidth}%`,
+                                            backgroundColor: 'var(--warning)',
+                                            transition: 'width 0.4s'
+                                        }} />
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
 
                         <div style={{ display: 'flex', gap: '16px', marginTop: '16px', flexWrap: 'wrap' }}>
                             {[
