@@ -41,6 +41,8 @@
     --glass-bg: rgba(255, 255, 255, 0.52);
     --glass-border: rgba(255, 255, 255, 0.75);
     --glass-blur: blur(16px);
+    /* Fully opaque dropdown for readability */
+    --dropdown-bg: #FFFFFF;
 }
 
 /* ============================================
@@ -80,6 +82,8 @@
     --glass-bg: rgba(16, 16, 32, 0.60);
     --glass-border: rgba(124, 127, 255, 0.24);
     --glass-blur: blur(16px);
+    /* Fully opaque dropdown for readability */
+    --dropdown-bg: #1A1A32;
 }
 
 /* ============================================
@@ -98,7 +102,6 @@
    ============================================ */
 html {
     height: 100%;
-    /* Fix 1: prevent touchpad/browser overscroll bounce */
     overscroll-behavior: none;
 }
 
@@ -109,7 +112,6 @@ body {
     -webkit-font-smoothing: antialiased;
     min-height: 100%;
     transition: color 0.3s ease;
-    /* Fix 1: prevent touchpad/browser overscroll bounce */
     overscroll-behavior: none;
 }
 

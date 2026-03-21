@@ -96,25 +96,23 @@ const TagInput = ({ selectedTags, onChange }) => {
         }
     };
 
+    // Fully opaque dropdown — no transparency, strong blur behind it
     const dropdownStyle = {
         position: 'absolute',
         top: 'calc(100% + 4px)',
         left: 0,
         right: 0,
-        background: 'var(--glass-bg)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid var(--glass-border)',
+        // Light mode: pure white. Dark mode handled via CSS var below
+        backgroundColor: 'var(--dropdown-bg)',
+        border: '1px solid var(--border)',
         borderRadius: '12px',
-        boxShadow: '0 8px 32px var(--shadow-md)',
-        // Use a very high z-index to escape any stacking context
+        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
         zIndex: 9999,
         maxHeight: '200px',
         overflowY: 'auto'
     };
 
     return (
-        // isolation: isolate creates its own stacking context so z-index works correctly
         <div style={{ position: 'relative', isolation: 'isolate' }}>
             {/* Selected Tags */}
             <div style={{
@@ -189,7 +187,7 @@ const TagInput = ({ selectedTags, onChange }) => {
                             fontSize: '13px', cursor: 'pointer', fontWeight: '600'
                         }}>Yes, Create</button>
                         <button onClick={() => { setShowConfirm(false); setInputValue(''); }} style={{
-                            padding: '6px 14px', background: 'var(--glass-bg)',
+                            padding: '6px 14px', background: 'var(--bg-hover)',
                             color: 'var(--text-primary)', border: '1px solid var(--border)',
                             borderRadius: '8px', fontSize: '13px', cursor: 'pointer'
                         }}>Cancel</button>

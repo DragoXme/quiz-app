@@ -15,7 +15,7 @@ const CustomSelect = ({ value, onChange, options, placeholder = 'Select...', sty
     const selected = options.find(o => o.value === value);
 
     return (
-        <div ref={ref} style={{ position: 'relative', ...style }}>
+        <div ref={ref} style={{ position: 'relative', isolation: 'isolate', ...style }}>
             {/* Trigger */}
             <button
                 type="button"
@@ -45,17 +45,15 @@ const CustomSelect = ({ value, onChange, options, placeholder = 'Select...', sty
                 }}>▼</span>
             </button>
 
-            {/* Dropdown */}
+            {/* Dropdown — fully opaque for readability */}
             {open && (
                 <div style={{
                     position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0,
-                    background: 'var(--glass-bg)',
-                    backdropFilter: 'blur(16px)',
-                    WebkitBackdropFilter: 'blur(16px)',
+                    backgroundColor: 'var(--dropdown-bg)',
                     border: '1.5px solid var(--accent)',
                     borderRadius: '12px',
-                    boxShadow: '0 8px 32px var(--shadow-md)',
-                    zIndex: 200,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+                    zIndex: 9999,
                     overflow: 'hidden'
                 }}>
                     {options.map((opt, idx) => (
@@ -67,7 +65,7 @@ const CustomSelect = ({ value, onChange, options, placeholder = 'Select...', sty
                                 fontSize: '13px',
                                 fontWeight: opt.value === value ? '700' : '400',
                                 color: opt.value === value ? 'var(--accent-text)' : 'var(--text-primary)',
-                                background: opt.value === value ? 'var(--accent-light)' : 'transparent',
+                                backgroundColor: opt.value === value ? 'var(--accent-light)' : 'transparent',
                                 cursor: 'pointer',
                                 borderBottom: idx < options.length - 1 ? '1px solid var(--border-light)' : 'none',
                                 display: 'flex', alignItems: 'center',
