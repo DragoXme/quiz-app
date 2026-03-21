@@ -22,6 +22,7 @@ const TestPage = () => {
     const [error, setError] = useState('');
     const [totalTimeLeft, setTotalTimeLeft] = useState(0);
     const [questionTimes, setQuestionTimes] = useState({});
+    const [leaveHovered, setLeaveHovered] = useState(false); // state-based hover fix
     const questionStartTime = useRef(null);
     const totalTimerRef = useRef(null);
 
@@ -207,17 +208,20 @@ const TestPage = () => {
                 ))}
             </div>
 
-            {/* Leave Test button in navigator */}
+            {/* Leave Test button — uses state-based hover so timer re-renders don't reset it */}
             {!isMobile && (
-                <button onClick={() => setShowAbandonModal(true)} style={{
-                    marginTop: '16px', width: '100%', padding: '8px',
-                    backgroundColor: 'var(--error-light)', color: 'var(--error)',
-                    border: '1px solid var(--error)', borderRadius: '8px',
-                    fontSize: '12px', fontWeight: '600', cursor: 'pointer',
-                    transition: 'all 0.15s'
-                }}
-                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--error)'; e.currentTarget.style.color = '#fff'; }}
-                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--error-light)'; e.currentTarget.style.color = 'var(--error)'; }}
+                <button
+                    onClick={() => setShowAbandonModal(true)}
+                    onMouseEnter={() => setLeaveHovered(true)}
+                    onMouseLeave={() => setLeaveHovered(false)}
+                    style={{
+                        marginTop: '16px', width: '100%', padding: '8px',
+                        backgroundColor: leaveHovered ? 'var(--error)' : 'var(--error-light)',
+                        color: leaveHovered ? '#fff' : 'var(--error)',
+                        border: '1px solid var(--error)', borderRadius: '8px',
+                        fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                        transition: 'background-color 0.15s, color 0.15s'
+                    }}
                 >
                     🚪 Leave Test
                 </button>
@@ -235,11 +239,9 @@ const TestPage = () => {
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 1px 12px var(--shadow)'
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: '800', color: 'var(--text-primary)' }}>
-                        📝 {isMobile ? 'Test' : 'Test in Progress'}
-                    </span>
-                </div>
+                <span style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                    📝 {isMobile ? 'Test' : 'Test in Progress'}
+                </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '14px' }}>
                     {!isMobile && (
                         <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
@@ -256,7 +258,6 @@ const TestPage = () => {
                             fontSize: '12px', fontWeight: '700', cursor: 'pointer'
                         }}>{answeredCount}/{questions.length}</button>
                     )}
-                    {/* Mobile leave button */}
                     {isMobile && (
                         <button onClick={() => setShowAbandonModal(true)} style={{
                             padding: '5px 9px', backgroundColor: 'var(--error-light)',
@@ -357,7 +358,6 @@ const TestPage = () => {
                 )}
             </div>
 
-            {/* Submit Modal */}
             <ConfirmModal
                 isOpen={showSubmitModal}
                 title="Submit Test"
@@ -369,7 +369,6 @@ const TestPage = () => {
                 confirmColor="var(--accent)"
             />
 
-            {/* Abandon Modal */}
             <ConfirmModal
                 isOpen={showAbandonModal}
                 title="⚠️ Leave Test"
