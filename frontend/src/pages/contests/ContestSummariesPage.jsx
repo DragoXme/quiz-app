@@ -4,6 +4,7 @@ import API from '../../api/axios';
 import Navbar from '../../components/Navbar';
 import { formatDate } from '../../utils/helpers';
 import useWindowSize from '../../hooks/useWindowSize';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const ContestSummariesPage = () => {
     const navigate = useNavigate();
@@ -11,6 +12,9 @@ const ContestSummariesPage = () => {
     const [summaries, setSummaries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [selectedContestId, setSelectedContestId] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => { fetchSummaries(); }, []);
 
@@ -22,6 +26,26 @@ const ContestSummariesPage = () => {
             setError('Failed to load contest summaries.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDeleteClick = (e, contestId) => {
+        e.stopPropagation();
+        setSelectedContestId(contestId);
+        setDeleteModalOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        setDeleting(true);
+        try {
+            await API.delete(`/contests/${selectedContestId}`);
+            setSummaries(prev => prev.filter(s => s.id !== selectedContestId));
+            setDeleteModalOpen(false);
+            setSelectedContestId(null);
+        } catch (err) {
+            setError('Failed to delete contest.');
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -94,8 +118,9 @@ const ContestSummariesPage = () => {
                         const scoreColor = scorePercent >= 70 ? 'var(--success)' : scorePercent >= 40 ? 'var(--warning)' : 'var(--error)';
 
                         return (
-                            <div key={summary.id} onClick={() => navigate(`/contests/${summary.id}`)}
-                                style={{ ...sectionStyle, cursor: 'pointer', transition: 'all 0.2s' }}
+                            <div key={summary.id}
+                                onClick={() => navigate(`/contests/${summary.id}`)}
+                                style={{ ...sectionStyle, cursor: 'pointer', transition: 'all 0.2s', position: 'relative' }}
                                 onMouseEnter={e => {
                                     e.currentTarget.style.borderColor = 'var(--accent)';
                                     e.currentTarget.style.boxShadow = `0 4px 16px var(--shadow-md)`;
@@ -105,8 +130,28 @@ const ContestSummariesPage = () => {
                                     e.currentTarget.style.boxShadow = `0 2px 8px var(--shadow)`;
                                 }}
                             >
+                                {/* Delete Button */}
+                                <button
+                                    onClick={(e) => handleDeleteClick(e, summary.id)}
+                                    style={{
+                                        position: 'absolute',
+                                        top: '12px', right: '12px',
+                                        padding: '4px 10px',
+                                        backgroundColor: 'var(--error-light)',
+                                        color: 'var(--error)',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        fontSize: '12px',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        zIndex: 1
+                                    }}
+                                >
+                                    🗑️ Delete
+                                </button>
+
                                 {/* Top row */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', paddingRight: '80px' }}>
                                     <div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                                             <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>
@@ -157,6 +202,16 @@ const ContestSummariesPage = () => {
                     })
                 )}
             </div>
+
+            <ConfirmModal
+                isOpen={deleteModalOpen}
+                title="Delete Contest"
+                message="Are you sure you want to delete this contest summary? This will not affect your question stats or analytics."
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => { setDeleteModalOpen(false); setSelectedContestId(null); }}
+                confirmText={deleting ? 'Deleting...' : 'Yes, Delete'}
+                cancelText="Cancel"
+            />
         </div>
     );
 };

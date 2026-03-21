@@ -6,6 +6,8 @@ const {
     getQuestionsToRevisit
 } = require('../models/contestModel');
 
+const pool = require('../config/db');
+
 const { getOptionsForQuestion, getFillAnswerForQuestion } = require('../models/questionModel');
 
 const getAllContestSummaries = async (req, res, next) => {
@@ -65,7 +67,28 @@ const getContestSummaryDetails = async (req, res, next) => {
     }
 };
 
+const deleteContest = async (req, res, next) => {
+    try {
+        const { contestId } = req.params;
+
+        const contest = await getContestSummaryById(contestId, req.user.id);
+        if (!contest) {
+            return res.status(404).json({ message: 'Contest not found.' });
+        }
+
+        await pool.query(
+            `DELETE FROM contests WHERE id = $1 AND user_id = $2`,
+            [contestId, req.user.id]
+        );
+
+        res.status(200).json({ message: 'Contest deleted successfully.' });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getAllContestSummaries,
-    getContestSummaryDetails
+    getContestSummaryDetails,
+    deleteContest
 };
