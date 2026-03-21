@@ -102,32 +102,44 @@ const getQuestionsHandler = async (req, res, next) => {
             paramIndex += 2;
         }
 
+        // Status filters
         const hasStruggling = parsedFilterTypes.includes('struggling');
         const hasUnattempted = parsedFilterTypes.includes('unattempted');
 
         if (hasStruggling && hasUnattempted) {
             baseQuery += ` AND (
                 (q.correct_count <= q.wrong_count AND q.wrong_count > 0)
-                OR
-                (q.wrong_count = 0 AND q.correct_count = 0 AND q.unattempted_count = 0)
-                OR
-                ((q.wrong_count + q.correct_count) <= q.unattempted_count AND q.unattempted_count > 0)
+                OR (q.wrong_count = 0 AND q.correct_count = 0 AND q.unattempted_count = 0)
+                OR ((q.wrong_count + q.correct_count) <= q.unattempted_count AND q.unattempted_count > 0)
             )`;
         } else if (hasStruggling) {
             baseQuery += ` AND q.correct_count <= q.wrong_count AND q.wrong_count > 0`;
         } else if (hasUnattempted) {
             baseQuery += ` AND (
                 (q.wrong_count = 0 AND q.correct_count = 0 AND q.unattempted_count = 0)
-                OR
-                ((q.wrong_count + q.correct_count) <= q.unattempted_count AND q.unattempted_count > 0)
+                OR ((q.wrong_count + q.correct_count) <= q.unattempted_count AND q.unattempted_count > 0)
             )`;
         }
 
-        const validSortFields = { 'min_time': 'q.min_time', 'max_time': 'q.max_time', 'diff_time': 'ABS(q.max_time - q.min_time)' };
+        // Sort fields — now includes correct/wrong/unattempted counts
+        const validSortFields = {
+            'min_time':          'q.min_time',
+            'max_time':          'q.max_time',
+            'diff_time':         'ABS(q.max_time - q.min_time)',
+            'correct_count':     'q.correct_count',
+            'wrong_count':       'q.wrong_count',
+            'unattempted_count': 'q.unattempted_count'
+        };
         const validSortOrders = ['ASC', 'DESC'];
         const sortField = validSortFields[sortBy] || null;
         const order = validSortOrders.includes(sortOrder?.toUpperCase()) ? sortOrder.toUpperCase() : 'ASC';
-        const orderClause = sortField ? ` ORDER BY (${sortField} IS NULL) ASC, ${sortField} ${order}` : ` ORDER BY q.created_at DESC`;
+
+        // For time-based sorts, nulls go last; for count-based, always sort directly
+        const orderClause = sortField
+            ? (sortBy.includes('time')
+                ? ` ORDER BY (${sortField} IS NULL) ASC, ${sortField} ${order}`
+                : ` ORDER BY ${sortField} ${order}`)
+            : ` ORDER BY q.created_at DESC`;
 
         const countResult = await pool.query(`SELECT COUNT(*) ${baseQuery}`, params);
         const totalCount = parseInt(countResult.rows[0].count);

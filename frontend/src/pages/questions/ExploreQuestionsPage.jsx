@@ -7,7 +7,6 @@ import CustomSelect from '../../components/CustomSelect';
 import { getQuestionTypeLabel, truncateText } from '../../utils/helpers';
 import useWindowSize from '../../hooks/useWindowSize';
 
-// Helper: is this question unattempted?
 const isUnattempted = (q) =>
     (q.wrong_count === 0 && q.correct_count === 0 && q.unattempted_count === 0) ||
     ((q.wrong_count + q.correct_count) <= q.unattempted_count && q.unattempted_count > 0);
@@ -80,14 +79,17 @@ const ExploreQuestionsPage = () => {
     };
 
     const sortByOptions = [
-        { value: '', label: 'Default (Latest)' },
-        { value: 'min_time', label: 'Min Time' },
-        { value: 'max_time', label: 'Max Time' },
-        { value: 'diff_time', label: 'Time Difference' }
+        { value: '',               label: 'Default (Latest)' },
+        { value: 'correct_count',  label: '✅ Correct Attempts' },
+        { value: 'wrong_count',    label: '❌ Wrong Attempts' },
+        { value: 'unattempted_count', label: '⏭️ Unattempted Count' },
+        { value: 'min_time',       label: '⚡ Min Time' },
+        { value: 'max_time',       label: '🕐 Max Time' },
+        { value: 'diff_time',      label: '📊 Time Difference' },
     ];
 
     const sortOrderOptions = [
-        { value: 'ASC', label: 'Ascending' },
+        { value: 'ASC',  label: 'Ascending' },
         { value: 'DESC', label: 'Descending' }
     ];
 
@@ -123,8 +125,9 @@ const ExploreQuestionsPage = () => {
                             <button onClick={handleClearFilters} style={{ padding: '4px 10px', backgroundColor: 'var(--error-light)', color: 'var(--error)', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Clear All</button>
                         </div>
 
+                        {/* Status Filter */}
                         <div style={{ marginBottom: '14px' }}>
-                            <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Filter by Status (select one or both):</p>
+                            <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Filter by Status:</p>
                             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                 {[
                                     { key: 'struggling', label: '🔴 Struggling', activeColor: 'var(--error)', lightColor: 'var(--error-light)', textColor: 'var(--error)' },
@@ -148,6 +151,7 @@ const ExploreQuestionsPage = () => {
                             </div>
                         </div>
 
+                        {/* Tag Filter */}
                         <div style={{ marginBottom: '14px' }}>
                             <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Filter by Tags:</p>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -162,8 +166,9 @@ const ExploreQuestionsPage = () => {
                             </div>
                         </div>
 
+                        {/* Sort */}
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                            <div style={{ flex: 1, minWidth: '140px' }}>
+                            <div style={{ flex: 1, minWidth: '160px' }}>
                                 <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>Sort By:</p>
                                 <CustomSelect value={sortBy} onChange={v => { setSortBy(v); setCurrentPage(1); }} options={sortByOptions} />
                             </div>
@@ -185,7 +190,11 @@ const ExploreQuestionsPage = () => {
                             const tag = availableTags.find(t => t.id === id);
                             return tag ? <span key={id} style={{ padding: '2px 8px', backgroundColor: 'var(--accent-light)', color: 'var(--accent-text)', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>{tag.name}</span> : null;
                         })}
-                        {sortBy && <span style={{ padding: '2px 8px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>{sortBy} {sortOrder}</span>}
+                        {sortBy && (
+                            <span style={{ padding: '2px 8px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>
+                                {sortByOptions.find(o => o.value === sortBy)?.label} {sortOrder}
+                            </span>
+                        )}
                     </div>
                 )}
 
