@@ -205,29 +205,29 @@ const AnalyticsPage = () => {
                                     </div>
                                 </div>
                                 <div style={{ height: '24px', backgroundColor: 'var(--bg-hover)', borderRadius: '6px', overflow: 'hidden', position: 'relative' }}>
-                                    {/* Total bar (blue) */}
+                                    {/* Total bar (blue) - full width background */}
                                     <div style={{
                                         position: 'absolute', left: 0, top: 0,
                                         height: '100%', width: `${totalWidth}%`,
                                         backgroundColor: 'var(--accent)',
                                         borderRadius: '6px', transition: 'width 0.4s'
                                     }} />
-                                    {/* Unattempted bar (orange) - top half */}
-                                    {unattempted > 0 && (
-                                        <div style={{
-                                            position: 'absolute', left: 0, top: 0,
-                                            height: '50%', width: `${unattemptedWidth}%`,
-                                            backgroundColor: 'var(--warning)',
-                                            borderRadius: '3px', transition: 'width 0.4s'
-                                        }} />
-                                    )}
-                                    {/* Struggling bar (red) - bottom half */}
+                                    {/* Struggling bar (red) - starts from left */}
                                     {struggling > 0 && (
                                         <div style={{
-                                            position: 'absolute', left: 0, bottom: 0,
-                                            height: '50%', width: `${strugglingWidth}%`,
+                                            position: 'absolute', left: 0, top: 0,
+                                            height: '100%', width: `${strugglingWidth}%`,
                                             backgroundColor: 'var(--error)',
-                                            borderRadius: '3px', transition: 'width 0.4s'
+                                            borderRadius: '6px', transition: 'width 0.4s'
+                                        }} />
+                                    )}
+                                    {/* Unattempted bar (orange) - starts after struggling */}
+                                    {unattempted > 0 && (
+                                        <div style={{
+                                            position: 'absolute', left: `${strugglingWidth}%`, top: 0,
+                                            height: '100%', width: `${unattemptedWidth}%`,
+                                            backgroundColor: 'var(--warning)',
+                                            transition: 'width 0.4s'
                                         }} />
                                     )}
                                 </div>
