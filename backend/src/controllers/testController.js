@@ -17,6 +17,58 @@ const {
 const { getTagsForQuestion } = require('../models/tagModel');
 const pool = require('../config/db');
 
+// Auto-submit a contest when time runs out
+const autoSubmitContest = async (contestId) => {
+    try {
+        // Check if already completed
+        const contestResult = await pool.query(
+            `SELECT * FROM contests WHERE id = $1`,
+            [contestId]
+        );
+        if (!contestResult.rows[0] || contestResult.rows[0].completed) return;
+
+        const contestQuestions = await getContestQuestions(contestId);
+
+        for (const cq of contestQuestions) {
+            const currentQuestion = await pool.query(
+                `SELECT * FROM questions WHERE id = $1`,
+                [cq.question_id]
+            );
+            if (!currentQuestion.rows[0]) continue;
+            const q = currentQuestion.rows[0];
+
+            let newCorrectCount = q.correct_count;
+            let newWrongCount = q.wrong_count;
+            let newUnattemptedCount = q.unattempted_count;
+            let newMinTime = q.min_time;
+            let newMaxTime = q.max_time;
+
+            if (!cq.is_attempted) {
+                newUnattemptedCount += 1;
+            } else if (cq.is_correct) {
+                newCorrectCount += 1;
+            } else {
+                newWrongCount += 1;
+            }
+
+            if (cq.is_attempted && cq.time_spent > 0) {
+                if (newMinTime === null || cq.time_spent < newMinTime) newMinTime = cq.time_spent;
+                if (newMaxTime === null || cq.time_spent > newMaxTime) newMaxTime = cq.time_spent;
+            }
+
+            await updateQuestionStats(
+                cq.question_id, newCorrectCount, newWrongCount,
+                newUnattemptedCount, newMinTime, newMaxTime
+            );
+        }
+
+        await completeContest(contestId);
+        console.log(`Auto-submitted contest ${contestId} after time expiry`);
+    } catch (error) {
+        console.error(`Failed to auto-submit contest ${contestId}:`, error.message);
+    }
+};
+
 const configureTest = async (req, res, next) => {
     try {
         const { totalQuestions, totalTime, tagIds, filterType } = req.body;
@@ -25,11 +77,9 @@ const configureTest = async (req, res, next) => {
         if (!totalQuestions || !totalTime) {
             return res.status(400).json({ message: 'Total questions and total time are required.' });
         }
-
         if (totalQuestions < 1) {
             return res.status(400).json({ message: 'Total questions must be at least 1.' });
         }
-
         if (totalTime < 1) {
             return res.status(400).json({ message: 'Total time must be at least 1 minute.' });
         }
@@ -47,6 +97,11 @@ const configureTest = async (req, res, next) => {
         for (const q of selectedQuestions) {
             await addContestQuestion(contest.id, q.id, q.min_time, q.max_time);
         }
+
+        // Schedule auto-submit when time runs out
+        const totalMilliseconds = totalTime * 60 * 1000;
+        setTimeout(() => autoSubmitContest(contest.id), totalMilliseconds);
+        console.log(`Scheduled auto-submit for contest ${contest.id} in ${totalTime} minutes`);
 
         res.status(201).json({
             message: 'Test configured successfully.',
@@ -189,12 +244,8 @@ const submitTest = async (req, res, next) => {
             }
 
             if (cq.is_attempted && cq.time_spent > 0) {
-                if (newMinTime === null || cq.time_spent < newMinTime) {
-                    newMinTime = cq.time_spent;
-                }
-                if (newMaxTime === null || cq.time_spent > newMaxTime) {
-                    newMaxTime = cq.time_spent;
-                }
+                if (newMinTime === null || cq.time_spent < newMinTime) newMinTime = cq.time_spent;
+                if (newMaxTime === null || cq.time_spent > newMaxTime) newMaxTime = cq.time_spent;
             }
 
             await updateQuestionStats(

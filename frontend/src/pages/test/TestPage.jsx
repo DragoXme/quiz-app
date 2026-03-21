@@ -33,7 +33,20 @@ const TestPage = () => {
             const res = await API.get(`/tests/${contestId}/questions`);
             setContest(res.data.contest);
             setQuestions(res.data.questions);
-            setTotalTimeLeft(res.data.contest.total_time * 60);
+
+            // Calculate remaining time accounting for time already elapsed
+            const totalSeconds = res.data.contest.total_time * 60;
+            let timeLeft = totalSeconds;
+
+            const activeContest = localStorage.getItem('activeContest');
+            if (activeContest) {
+                const { contestId: savedId, startedAt, totalTime } = JSON.parse(activeContest);
+                if (savedId === contestId) {
+                    const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+                    timeLeft = Math.max(0, totalTime - elapsed);
+                }
+            }
+
             const initialAnswers = {};
             const initialTimes = {};
             res.data.questions.forEach(q => {
@@ -44,7 +57,12 @@ const TestPage = () => {
             setQuestionTimes(initialTimes);
             setLoading(false);
             questionStartTime.current = Date.now();
-            startTotalTimer(res.data.contest.total_time * 60);
+
+            if (timeLeft <= 0) {
+                handleSubmit(true);
+            } else {
+                startTotalTimer(timeLeft);
+            }
         } catch (err) {
             setError('Failed to load test.');
             setLoading(false);
@@ -52,6 +70,7 @@ const TestPage = () => {
     };
 
     const startTotalTimer = (seconds) => {
+        setTotalTimeLeft(seconds);
         let timeLeft = seconds;
         totalTimerRef.current = setInterval(() => {
             timeLeft -= 1;
@@ -110,6 +129,8 @@ const TestPage = () => {
                 });
             }
             await API.post(`/tests/${contestId}/submit`);
+            // Clear active contest from localStorage
+            localStorage.removeItem('activeContest');
             navigate(`/test/${contestId}/result`);
         } catch (err) {
             setError('Failed to submit test.');

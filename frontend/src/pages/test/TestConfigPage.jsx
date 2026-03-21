@@ -43,7 +43,14 @@ const TestConfigPage = () => {
             const res = await API.post('/tests/configure', {
                 totalQuestions, totalTime, tagIds: selectedTagIds, filterType
             });
-            navigate(`/test/${res.data.contestId}`);
+            const contestId = res.data.contestId;
+            // Save active test info to localStorage for resume functionality
+            localStorage.setItem('activeContest', JSON.stringify({
+                contestId,
+                startedAt: Date.now(),
+                totalTime: totalTime * 60
+            }));
+            navigate(`/test/${contestId}`);
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to start test.');
         } finally {
