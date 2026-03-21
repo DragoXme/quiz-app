@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import API from '../../api/axios';
 import Navbar from '../../components/Navbar';
 import Pagination from '../../components/Pagination';
+import CustomSelect from '../../components/CustomSelect';
 import { getQuestionTypeLabel, truncateText } from '../../utils/helpers';
 import useWindowSize from '../../hooks/useWindowSize';
 
@@ -68,20 +69,28 @@ const ExploreQuestionsPage = () => {
         setCurrentPage(1);
     };
 
-    const sectionStyle = {
-        backgroundColor: 'var(--bg-card)',
-        borderRadius: '12px',
+    const glassCard = {
+        background: 'var(--glass-bg)',
+        backdropFilter: 'var(--glass-blur)',
+        WebkitBackdropFilter: 'var(--glass-blur)',
+        borderRadius: '16px',
         padding: isMobile ? '16px' : '20px',
         marginBottom: '16px',
-        boxShadow: `0 2px 8px var(--shadow)`,
-        border: '1px solid var(--border)'
+        boxShadow: `0 4px 20px var(--shadow)`,
+        border: '1px solid var(--glass-border)'
     };
 
-    const selectStyle = {
-        width: '100%', padding: '9px 12px', borderRadius: '8px',
-        border: '1px solid var(--input-border)', fontSize: '13px',
-        outline: 'none', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)'
-    };
+    const sortByOptions = [
+        { value: '', label: 'Default (Latest)' },
+        { value: 'min_time', label: 'Min Time' },
+        { value: 'max_time', label: 'Max Time' },
+        { value: 'diff_time', label: 'Time Difference' }
+    ];
+
+    const sortOrderOptions = [
+        { value: 'ASC', label: 'Ascending' },
+        { value: 'DESC', label: 'Descending' }
+    ];
 
     return (
         <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
@@ -104,113 +113,83 @@ const ExploreQuestionsPage = () => {
                             </p>
                         </div>
                     </div>
-                    <button
-                        onClick={() => setShowFilters(!showFilters)}
-                        style={{
-                            padding: '8px 14px', flexShrink: 0,
-                            backgroundColor: showFilters ? 'var(--accent)' : 'var(--bg-card)',
-                            color: showFilters ? '#fff' : 'var(--accent)',
-                            border: '1px solid var(--accent)',
-                            borderRadius: '8px', fontSize: '13px',
-                            fontWeight: '600', cursor: 'pointer'
-                        }}
-                    >
+                    <button onClick={() => setShowFilters(!showFilters)} style={{
+                        padding: '8px 14px', flexShrink: 0,
+                        background: showFilters ? 'var(--gradient-accent)' : 'var(--glass-bg)',
+                        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+                        color: showFilters ? '#fff' : 'var(--accent-text)',
+                        border: '1.5px solid var(--accent)',
+                        borderRadius: '10px', fontSize: '13px',
+                        fontWeight: '600', cursor: 'pointer'
+                    }}>
                         🔧 {isMobile ? 'Filter' : 'Filters & Sort'}
                     </button>
                 </div>
 
                 {/* Filters Panel */}
                 {showFilters && (
-                    <div style={sectionStyle}>
+                    <div style={glassCard}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                             <h3 style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>Filter & Sort</h3>
                             <button onClick={handleClearFilters} style={{
                                 padding: '4px 10px', backgroundColor: 'var(--error-light)',
-                                color: 'var(--error)', border: 'none', borderRadius: '6px',
+                                color: 'var(--error)', border: 'none', borderRadius: '8px',
                                 fontSize: '12px', fontWeight: '600', cursor: 'pointer'
-                            }}>
-                                Clear All
-                            </button>
+                            }}>Clear All</button>
                         </div>
 
-                        {/* Question Status Filter */}
+                        {/* Status Filter */}
                         <div style={{ marginBottom: '14px' }}>
-                            <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                                Filter by Status:
-                            </p>
+                            <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Filter by Status:</p>
                             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                <button
-                                    onClick={() => handleFilterType('struggling')}
-                                    style={{
+                                {[
+                                    { key: 'struggling', label: '🔴 Struggling', activeColor: 'var(--error)', lightColor: 'var(--error-light)', textColor: 'var(--error)' },
+                                    { key: 'unattempted', label: '⏭️ Unattempted', activeColor: 'var(--warning)', lightColor: 'var(--warning-light)', textColor: 'var(--warning)' }
+                                ].map(f => (
+                                    <button key={f.key} onClick={() => handleFilterType(f.key)} style={{
                                         padding: '5px 12px', borderRadius: '20px', border: 'none',
-                                        backgroundColor: filterType === 'struggling' ? 'var(--error)' : 'var(--error-light)',
-                                        color: filterType === 'struggling' ? '#fff' : 'var(--error)',
+                                        backgroundColor: filterType === f.key ? f.activeColor : f.lightColor,
+                                        color: filterType === f.key ? '#fff' : f.textColor,
                                         fontSize: '12px', fontWeight: '600', cursor: 'pointer'
-                                    }}
-                                >
-                                    🔴 Struggling
-                                </button>
-                                <button
-                                    onClick={() => handleFilterType('unattempted')}
-                                    style={{
-                                        padding: '5px 12px', borderRadius: '20px', border: 'none',
-                                        backgroundColor: filterType === 'unattempted' ? 'var(--warning)' : 'var(--warning-light)',
-                                        color: filterType === 'unattempted' ? '#fff' : 'var(--warning)',
-                                        fontSize: '12px', fontWeight: '600', cursor: 'pointer'
-                                    }}
-                                >
-                                    ⏭️ Unattempted
-                                </button>
+                                    }}>{f.label}</button>
+                                ))}
                             </div>
                         </div>
 
                         {/* Tag Filter */}
                         <div style={{ marginBottom: '14px' }}>
-                            <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                                Filter by Tags:
-                            </p>
+                            <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Filter by Tags:</p>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                 {availableTags.filter(t =>
-                                    t.name !== 'mcq single correct' &&
-                                    t.name !== 'mcq multiple correct' &&
-                                    t.name !== 'fill in the blank'
-                                ).length === 0 && (
-                                    <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No tags available yet.</p>
-                                )}
-                                {availableTags.filter(t =>
-                                    t.name !== 'mcq single correct' &&
-                                    t.name !== 'mcq multiple correct' &&
-                                    t.name !== 'fill in the blank'
+                                    t.name !== 'mcq single correct' && t.name !== 'mcq multiple correct' && t.name !== 'fill in the blank'
                                 ).map(tag => (
                                     <button key={tag.id} onClick={() => handleTagFilter(tag.id)} style={{
                                         padding: '4px 10px', borderRadius: '20px', border: 'none',
                                         backgroundColor: selectedTagIds.includes(tag.id) ? 'var(--accent)' : 'var(--accent-light)',
                                         color: selectedTagIds.includes(tag.id) ? '#fff' : 'var(--accent-text)',
                                         fontSize: '12px', fontWeight: '600', cursor: 'pointer'
-                                    }}>
-                                        {tag.name}
-                                    </button>
+                                    }}>{tag.name}</button>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Sort */}
+                        {/* Sort — using CustomSelect */}
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                             <div style={{ flex: 1, minWidth: '140px' }}>
                                 <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>Sort By:</p>
-                                <select value={sortBy} onChange={e => { setSortBy(e.target.value); setCurrentPage(1); }} style={selectStyle}>
-                                    <option value="">Default (Latest)</option>
-                                    <option value="min_time">Min Time</option>
-                                    <option value="max_time">Max Time</option>
-                                    <option value="diff_time">Time Difference</option>
-                                </select>
+                                <CustomSelect
+                                    value={sortBy}
+                                    onChange={v => { setSortBy(v); setCurrentPage(1); }}
+                                    options={sortByOptions}
+                                />
                             </div>
                             <div style={{ flex: 1, minWidth: '120px' }}>
                                 <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>Order:</p>
-                                <select value={sortOrder} onChange={e => { setSortOrder(e.target.value); setCurrentPage(1); }} style={selectStyle}>
-                                    <option value="ASC">Ascending</option>
-                                    <option value="DESC">Descending</option>
-                                </select>
+                                <CustomSelect
+                                    value={sortOrder}
+                                    onChange={v => { setSortOrder(v); setCurrentPage(1); }}
+                                    options={sortOrderOptions}
+                                />
                             </div>
                         </div>
                     </div>
@@ -220,33 +199,13 @@ const ExploreQuestionsPage = () => {
                 {(selectedTagIds.length > 0 || sortBy || filterType) && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px', alignItems: 'center' }}>
                         <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Active:</span>
-                        {filterType === 'struggling' && (
-                            <span style={{ padding: '2px 8px', backgroundColor: 'var(--error-light)', color: 'var(--error)', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>
-                                🔴 Struggling
-                            </span>
-                        )}
-                        {filterType === 'unattempted' && (
-                            <span style={{ padding: '2px 8px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>
-                                ⏭️ Unattempted
-                            </span>
-                        )}
+                        {filterType === 'struggling' && <span style={{ padding: '2px 8px', backgroundColor: 'var(--error-light)', color: 'var(--error)', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>🔴 Struggling</span>}
+                        {filterType === 'unattempted' && <span style={{ padding: '2px 8px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>⏭️ Unattempted</span>}
                         {selectedTagIds.map(id => {
                             const tag = availableTags.find(t => t.id === id);
-                            return tag ? (
-                                <span key={id} style={{
-                                    padding: '2px 8px', backgroundColor: 'var(--accent-light)',
-                                    color: 'var(--accent-text)', borderRadius: '20px', fontSize: '11px', fontWeight: '600'
-                                }}>{tag.name}</span>
-                            ) : null;
+                            return tag ? <span key={id} style={{ padding: '2px 8px', backgroundColor: 'var(--accent-light)', color: 'var(--accent-text)', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>{tag.name}</span> : null;
                         })}
-                        {sortBy && (
-                            <span style={{
-                                padding: '2px 8px', backgroundColor: 'var(--warning-light)',
-                                color: 'var(--warning)', borderRadius: '20px', fontSize: '11px', fontWeight: '600'
-                            }}>
-                                {sortBy} {sortOrder}
-                            </span>
-                        )}
+                        {sortBy && <span style={{ padding: '2px 8px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>{sortBy} {sortOrder}</span>}
                     </div>
                 )}
 
@@ -254,71 +213,47 @@ const ExploreQuestionsPage = () => {
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>Loading questions...</div>
                 ) : questions.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '48px', backgroundColor: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                    <div style={{ ...glassCard, textAlign: 'center', padding: '48px' }}>
                         <p style={{ fontSize: '40px', marginBottom: '12px' }}>📭</p>
                         <p style={{ color: 'var(--text-muted)', fontSize: '15px' }}>No questions found.</p>
                         <button onClick={() => navigate('/questions/create')} style={{
                             marginTop: '16px', padding: '10px 24px',
-                            backgroundColor: 'var(--accent)', color: '#fff',
-                            border: 'none', borderRadius: '8px',
+                            background: 'var(--gradient-accent)', color: '#fff',
+                            border: 'none', borderRadius: '10px',
                             fontSize: '14px', fontWeight: '600', cursor: 'pointer'
-                        }}>
-                            Create your first question
-                        </button>
+                        }}>Create your first question</button>
                     </div>
                 ) : (
                     <>
                         {questions.map((q, idx) => (
-                            <div
-                                key={q.id}
-                                onClick={() => navigate(`/questions/${q.id}`)}
-                                style={{
-                                    backgroundColor: 'var(--bg-card)',
-                                    borderRadius: '12px',
-                                    padding: isMobile ? '14px' : '20px',
-                                    marginBottom: '10px',
-                                    boxShadow: `0 2px 6px var(--shadow)`,
-                                    cursor: 'pointer',
-                                    border: '2px solid var(--border)',
-                                    transition: 'all 0.2s'
-                                }}
-                                onMouseEnter={e => {
-                                    e.currentTarget.style.borderColor = 'var(--accent)';
-                                    e.currentTarget.style.boxShadow = `0 4px 16px var(--shadow-md)`;
-                                }}
-                                onMouseLeave={e => {
-                                    e.currentTarget.style.borderColor = 'var(--border)';
-                                    e.currentTarget.style.boxShadow = `0 2px 6px var(--shadow)`;
-                                }}
+                            <div key={q.id} onClick={() => navigate(`/questions/${q.id}`)} style={{
+                                background: 'var(--glass-bg)',
+                                backdropFilter: 'var(--glass-blur)',
+                                WebkitBackdropFilter: 'var(--glass-blur)',
+                                borderRadius: '14px',
+                                padding: isMobile ? '14px' : '18px',
+                                marginBottom: '10px',
+                                boxShadow: `0 2px 12px var(--shadow)`,
+                                cursor: 'pointer',
+                                border: '1px solid var(--glass-border)',
+                                transition: 'all 0.2s'
+                            }}
+                                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = `0 6px 24px var(--shadow-md)`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = `0 2px 12px var(--shadow)`; e.currentTarget.style.transform = 'translateY(0)'; }}
                             >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                                    <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)' }}>
-                                        #{(currentPage - 1) * 10 + idx + 1}
-                                    </span>
-                                    <span style={{
-                                        padding: '2px 8px', borderRadius: '20px',
-                                        backgroundColor: 'var(--accent-light)', color: 'var(--accent-text)',
-                                        fontSize: '11px', fontWeight: '700'
-                                    }}>
+                                    <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)' }}>#{(currentPage - 1) * 10 + idx + 1}</span>
+                                    <span style={{ padding: '2px 8px', borderRadius: '20px', backgroundColor: 'var(--accent-light)', color: 'var(--accent-text)', fontSize: '11px', fontWeight: '700' }}>
                                         {getQuestionTypeLabel(q.type)}
                                     </span>
                                     {q.is_starred && <span style={{ fontSize: '14px' }}>⭐</span>}
                                     {q.correct_count <= q.wrong_count && q.wrong_count > 0 && (
-                                        <span style={{
-                                            padding: '2px 8px', borderRadius: '20px',
-                                            backgroundColor: 'var(--error-light)', color: 'var(--error)',
-                                            fontSize: '11px', fontWeight: '700'
-                                        }}>🔴 Struggling</span>
+                                        <span style={{ padding: '2px 8px', borderRadius: '20px', backgroundColor: 'var(--error-light)', color: 'var(--error)', fontSize: '11px', fontWeight: '700' }}>🔴 Struggling</span>
                                     )}
                                     {(q.wrong_count + q.correct_count) <= q.unattempted_count && q.unattempted_count > 0 && (
-                                        <span style={{
-                                            padding: '2px 8px', borderRadius: '20px',
-                                            backgroundColor: 'var(--warning-light)', color: 'var(--warning)',
-                                            fontSize: '11px', fontWeight: '700'
-                                        }}>⏭️ Unattempted</span>
+                                        <span style={{ padding: '2px 8px', borderRadius: '20px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', fontSize: '11px', fontWeight: '700' }}>⏭️ Unattempted</span>
                                     )}
                                 </div>
-
                                 {q.question_text && (
                                     <p style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: '500', marginBottom: '10px', lineHeight: '1.5' }}>
                                         {truncateText(q.question_text, isMobile ? 100 : 150)}
@@ -327,30 +262,20 @@ const ExploreQuestionsPage = () => {
                                 {q.question_image_url && !q.question_text && (
                                     <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '10px' }}>📷 Image question</p>
                                 )}
-
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                                     {q.tags?.filter(t =>
-                                        t.name !== 'starred' &&
-                                        t.name !== 'mcq single correct' &&
-                                        t.name !== 'mcq multiple correct' &&
-                                        t.name !== 'fill in the blank'
+                                        t.name !== 'starred' && t.name !== 'mcq single correct' && t.name !== 'mcq multiple correct' && t.name !== 'fill in the blank'
                                     ).map(tag => (
-                                        <span key={tag.id} style={{
-                                            padding: '2px 6px', borderRadius: '10px',
-                                            backgroundColor: 'var(--tag-bg)', color: 'var(--tag-text)',
-                                            fontSize: '10px', fontWeight: '500'
-                                        }}>
+                                        <span key={tag.id} style={{ padding: '2px 6px', borderRadius: '10px', backgroundColor: 'var(--tag-bg)', color: 'var(--tag-text)', fontSize: '10px', fontWeight: '500' }}>
                                             {tag.name}
                                         </span>
                                     ))}
                                 </div>
                             </div>
                         ))}
-
                         <p style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)', margin: '14px 0' }}>
                             Showing {(currentPage - 1) * 10 + 1}–{Math.min(currentPage * 10, totalCount)} of {totalCount}
                         </p>
-
                         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
                     </>
                 )}

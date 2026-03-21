@@ -6,12 +6,20 @@ import TagInput from '../../components/TagInput';
 import ImageUpload from '../../components/ImageUpload';
 import OptionsList from '../../components/OptionsList';
 import ConfirmModal from '../../components/ConfirmModal';
+import CustomSelect from '../../components/CustomSelect';
 
 const defaultOptions = () => [
     { optionText: '', optionImageUrl: null, isCorrect: false },
     { optionText: '', optionImageUrl: null, isCorrect: false },
     { optionText: '', optionImageUrl: null, isCorrect: false },
     { optionText: '', optionImageUrl: null, isCorrect: false }
+];
+
+const questionTypeOptions = [
+    { value: '', label: '-- Select Question Type --' },
+    { value: 'mcq_single', label: 'MCQ - Single Correct Answer' },
+    { value: 'mcq_multiple', label: 'MCQ - Multiple Correct Answers' },
+    { value: 'fill_blank', label: 'Fill in the Blank' }
 ];
 
 const CreateQuestionPage = () => {
@@ -87,43 +95,35 @@ const CreateQuestionPage = () => {
         }
     };
 
-    const sectionStyle = {
-        backgroundColor: 'var(--bg-card)',
-        borderRadius: '12px',
+    const glassCard = {
+        background: 'var(--glass-bg)',
+        backdropFilter: 'var(--glass-blur)',
+        WebkitBackdropFilter: 'var(--glass-blur)',
+        borderRadius: '16px',
         padding: '24px',
-        marginBottom: '20px',
-        boxShadow: `0 2px 8px var(--shadow)`,
-        border: '1px solid var(--border)'
+        marginBottom: '16px',
+        boxShadow: '0 4px 20px var(--shadow)',
+        border: '1px solid var(--glass-border)'
     };
 
     const labelStyle = {
-        fontSize: '14px',
-        fontWeight: '700',
-        color: 'var(--text-primary)',
-        display: 'block',
-        marginBottom: '10px'
+        fontSize: '14px', fontWeight: '700',
+        color: 'var(--text-primary)', display: 'block', marginBottom: '10px'
     };
 
     const tabStyle = (active) => ({
-        padding: '8px 20px',
-        borderRadius: '8px',
-        border: 'none',
-        backgroundColor: active ? 'var(--accent)' : 'var(--bg-hover)',
+        padding: '8px 18px', borderRadius: '10px', border: 'none',
+        background: active ? 'var(--gradient-accent)' : 'var(--bg-hover)',
         color: active ? '#fff' : 'var(--text-secondary)',
-        fontSize: '13px',
-        fontWeight: '600',
-        cursor: 'pointer'
+        fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+        boxShadow: active ? '0 2px 8px var(--shadow)' : 'none'
     });
 
     const inputStyle = {
-        width: '100%',
-        padding: '11px 14px',
-        borderRadius: '8px',
-        border: '1px solid var(--input-border)',
-        fontSize: '14px',
-        outline: 'none',
-        boxSizing: 'border-box',
-        backgroundColor: 'var(--bg-input)',
+        width: '100%', padding: '11px 14px', borderRadius: '10px',
+        border: '1.5px solid var(--input-border)', fontSize: '14px',
+        outline: 'none', boxSizing: 'border-box',
+        background: 'var(--glass-bg)', backdropFilter: 'blur(8px)',
         color: 'var(--text-primary)'
     };
 
@@ -132,74 +132,38 @@ const CreateQuestionPage = () => {
             <Navbar />
             <div style={{ maxWidth: '760px', margin: '0 auto', padding: '32px 24px' }}>
 
-                {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
-                    <button onClick={() => navigate('/home')}
-                        style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                        ←
-                    </button>
-                    <h1 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>
-                        Create Question
-                    </h1>
+                    <button onClick={() => navigate('/home')} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}>←</button>
+                    <h1 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>Create Question</h1>
                 </div>
 
-                {error && (
-                    <div style={{ backgroundColor: 'var(--error-light)', color: 'var(--error)', padding: '12px 16px', borderRadius: '8px', fontSize: '14px', marginBottom: '16px', border: '1px solid var(--error)' }}>
-                        {error}
-                    </div>
-                )}
-                {success && (
-                    <div style={{ backgroundColor: 'var(--success-light)', color: 'var(--success)', padding: '12px 16px', borderRadius: '8px', fontSize: '14px', marginBottom: '16px', border: '1px solid var(--success)' }}>
-                        {success}
-                    </div>
-                )}
+                {error && <div style={{ backgroundColor: 'var(--error-light)', color: 'var(--error)', padding: '12px 16px', borderRadius: '10px', fontSize: '14px', marginBottom: '16px', border: '1px solid var(--error)' }}>{error}</div>}
+                {success && <div style={{ backgroundColor: 'var(--success-light)', color: 'var(--success)', padding: '12px 16px', borderRadius: '10px', fontSize: '14px', marginBottom: '16px', border: '1px solid var(--success)' }}>{success}</div>}
 
                 {/* Question Type */}
-                <div style={sectionStyle}>
+                <div style={glassCard}>
                     <label style={labelStyle}>Question Type *</label>
-                    <select
+                    <CustomSelect
                         value={questionType}
-                        onChange={e => { setQuestionType(e.target.value); setOptions(defaultOptions()); setError(''); }}
-                        style={{
-                            width: '100%', padding: '11px 14px',
-                            borderRadius: '8px', border: '1px solid var(--input-border)',
-                            fontSize: '14px', outline: 'none',
-                            backgroundColor: 'var(--bg-input)',
-                            color: 'var(--text-primary)', cursor: 'pointer'
-                        }}
-                    >
-                        <option value="">-- Select Question Type --</option>
-                        <option value="mcq_single">MCQ - Single Correct Answer</option>
-                        <option value="mcq_multiple">MCQ - Multiple Correct Answers</option>
-                        <option value="fill_blank">Fill in the Blank</option>
-                    </select>
+                        onChange={v => { setQuestionType(v); setOptions(defaultOptions()); setError(''); }}
+                        options={questionTypeOptions}
+                        placeholder="-- Select Question Type --"
+                    />
                 </div>
 
                 {questionType && (
                     <>
                         {/* Question Input */}
-                        <div style={sectionStyle}>
+                        <div style={glassCard}>
                             <label style={labelStyle}>Question *</label>
                             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
                                 <button style={tabStyle(questionInputType === 'text')} onClick={() => setQuestionInputType('text')}>✏️ Write</button>
                                 <button style={tabStyle(questionInputType === 'image')} onClick={() => setQuestionInputType('image')}>📷 Upload Image</button>
                             </div>
                             {questionInputType === 'text' ? (
-                                <textarea
-                                    value={questionText}
-                                    onChange={e => setQuestionText(e.target.value)}
-                                    placeholder="Enter your question here..."
-                                    rows={4}
-                                    style={{
-                                        width: '100%', padding: '12px 14px',
-                                        borderRadius: '8px', border: '1px solid var(--input-border)',
-                                        fontSize: '14px', outline: 'none',
-                                        resize: 'vertical', boxSizing: 'border-box',
-                                        fontFamily: 'inherit',
-                                        backgroundColor: 'var(--bg-input)',
-                                        color: 'var(--text-primary)'
-                                    }}
-                                />
+                                <textarea value={questionText} onChange={e => setQuestionText(e.target.value)}
+                                    placeholder="Enter your question here..." rows={4}
+                                    style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} />
                             ) : (
                                 <ImageUpload label="Question Image" imageUrl={questionImageUrl}
                                     onImageChange={setQuestionImageUrl} onClear={() => setQuestionImageUrl(null)} />
@@ -208,7 +172,7 @@ const CreateQuestionPage = () => {
 
                         {/* Options for MCQ */}
                         {(questionType === 'mcq_single' || questionType === 'mcq_multiple') && (
-                            <div style={sectionStyle}>
+                            <div style={glassCard}>
                                 <label style={labelStyle}>Options *</label>
                                 <OptionsList options={options} onChange={setOptions} allowMultiple={questionType === 'mcq_multiple'} />
                             </div>
@@ -216,38 +180,24 @@ const CreateQuestionPage = () => {
 
                         {/* Fill in blank */}
                         {questionType === 'fill_blank' && (
-                            <div style={sectionStyle}>
+                            <div style={glassCard}>
                                 <label style={labelStyle}>Correct Answer *</label>
-                                <input type="text" value={fillAnswer}
-                                    onChange={e => setFillAnswer(e.target.value)}
-                                    placeholder="Enter the correct answer"
-                                    style={inputStyle} />
+                                <input type="text" value={fillAnswer} onChange={e => setFillAnswer(e.target.value)}
+                                    placeholder="Enter the correct answer" style={inputStyle} />
                             </div>
                         )}
 
                         {/* Solution */}
-                        <div style={sectionStyle}>
+                        <div style={glassCard}>
                             <label style={labelStyle}>Solution (Optional)</label>
                             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
                                 <button style={tabStyle(solutionInputType === 'text')} onClick={() => setSolutionInputType('text')}>✏️ Write</button>
                                 <button style={tabStyle(solutionInputType === 'image')} onClick={() => setSolutionInputType('image')}>📷 Upload Image</button>
                             </div>
                             {solutionInputType === 'text' ? (
-                                <textarea
-                                    value={solutionText}
-                                    onChange={e => setSolutionText(e.target.value)}
-                                    placeholder="Enter solution explanation (optional)..."
-                                    rows={3}
-                                    style={{
-                                        width: '100%', padding: '12px 14px',
-                                        borderRadius: '8px', border: '1px solid var(--input-border)',
-                                        fontSize: '14px', outline: 'none',
-                                        resize: 'vertical', boxSizing: 'border-box',
-                                        fontFamily: 'inherit',
-                                        backgroundColor: 'var(--bg-input)',
-                                        color: 'var(--text-primary)'
-                                    }}
-                                />
+                                <textarea value={solutionText} onChange={e => setSolutionText(e.target.value)}
+                                    placeholder="Enter solution explanation (optional)..." rows={3}
+                                    style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} />
                             ) : (
                                 <ImageUpload label="Solution Image" imageUrl={solutionImageUrl}
                                     onImageChange={setSolutionImageUrl} onClear={() => setSolutionImageUrl(null)} />
@@ -255,20 +205,17 @@ const CreateQuestionPage = () => {
                         </div>
 
                         {/* Tags */}
-                        <div style={sectionStyle}>
+                        <div style={glassCard}>
                             <label style={labelStyle}>Tags * (at least 1 required)</label>
                             <TagInput selectedTags={tags} onChange={setTags} />
                         </div>
 
                         {/* Starred */}
-                        <div style={sectionStyle}>
+                        <div style={glassCard}>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                                <input type="checkbox" checked={isStarred}
-                                    onChange={e => setIsStarred(e.target.checked)}
-                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
-                                <span style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                                    ⭐ Star this question
-                                </span>
+                                <input type="checkbox" checked={isStarred} onChange={e => setIsStarred(e.target.checked)}
+                                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--accent)' }} />
+                                <span style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>⭐ Star this question</span>
                             </label>
                         </div>
 
@@ -276,37 +223,28 @@ const CreateQuestionPage = () => {
                         <div style={{ display: 'flex', gap: '12px' }}>
                             <button onClick={handleSubmit} disabled={loading} style={{
                                 flex: 1, padding: '14px',
-                                backgroundColor: loading ? 'var(--text-muted)' : 'var(--accent)',
-                                color: '#fff', border: 'none',
-                                borderRadius: '10px', fontSize: '15px',
-                                fontWeight: '700', cursor: loading ? 'not-allowed' : 'pointer'
+                                background: loading ? 'var(--border)' : 'var(--gradient-accent)',
+                                color: '#fff', border: 'none', borderRadius: '12px',
+                                fontSize: '15px', fontWeight: '700',
+                                cursor: loading ? 'not-allowed' : 'pointer',
+                                boxShadow: loading ? 'none' : '0 4px 16px var(--shadow-md)'
                             }}>
                                 {loading ? 'Saving...' : '💾 Save Question'}
                             </button>
                             <button onClick={() => setShowClearModal(true)} style={{
-                                padding: '14px 24px',
-                                backgroundColor: 'var(--error-light)',
-                                color: 'var(--error)',
-                                border: '1px solid var(--error)',
-                                borderRadius: '10px', fontSize: '15px',
-                                fontWeight: '700', cursor: 'pointer'
-                            }}>
-                                🗑️ Clear
-                            </button>
+                                padding: '14px 24px', backgroundColor: 'var(--error-light)',
+                                color: 'var(--error)', border: '1px solid var(--error)',
+                                borderRadius: '12px', fontSize: '15px', fontWeight: '700', cursor: 'pointer'
+                            }}>🗑️ Clear</button>
                         </div>
                     </>
                 )}
             </div>
 
-            <ConfirmModal
-                isOpen={showClearModal}
-                title="Clear All"
+            <ConfirmModal isOpen={showClearModal} title="Clear All"
                 message="Confirm if you want to clear all the entered data? This cannot be undone."
-                onConfirm={handleClear}
-                onCancel={() => setShowClearModal(false)}
-                confirmText="Yes, Clear"
-                cancelText="Cancel"
-            />
+                onConfirm={handleClear} onCancel={() => setShowClearModal(false)}
+                confirmText="Yes, Clear" cancelText="Cancel" />
         </div>
     );
 };
