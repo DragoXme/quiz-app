@@ -44,12 +44,15 @@ const TestConfigPage = () => {
                 totalQuestions, totalTime, tagIds: selectedTagIds, filterType
             });
             const contestId = res.data.contestId;
-            // Save active test info to localStorage for resume functionality
-            localStorage.setItem('activeContest', JSON.stringify({
-                contestId,
-                startedAt: Date.now(),
-                totalTime: totalTime * 60
-            }));
+            const totalSeconds = totalTime * 60;
+            const now = Date.now();
+
+            // Load existing active contests array
+            const existing = JSON.parse(localStorage.getItem('activeContests') || '[]');
+            // Add new contest
+            existing.push({ contestId, startedAt: now, totalTime: totalSeconds });
+            localStorage.setItem('activeContests', JSON.stringify(existing));
+
             navigate(`/test/${contestId}`);
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to start test.');
@@ -167,28 +170,18 @@ const TestConfigPage = () => {
                         Focus on questions that need more practice.
                     </p>
                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                        <button
-                            onClick={() => handleFilterType('struggling')}
-                            style={{
-                                padding: '8px 16px', borderRadius: '20px', border: 'none',
-                                backgroundColor: filterType === 'struggling' ? 'var(--error)' : 'var(--error-light)',
-                                color: filterType === 'struggling' ? '#fff' : 'var(--error)',
-                                fontSize: '13px', fontWeight: '600', cursor: 'pointer'
-                            }}
-                        >
-                            🔴 Struggling Questions
-                        </button>
-                        <button
-                            onClick={() => handleFilterType('unattempted')}
-                            style={{
-                                padding: '8px 16px', borderRadius: '20px', border: 'none',
-                                backgroundColor: filterType === 'unattempted' ? 'var(--warning)' : 'var(--warning-light)',
-                                color: filterType === 'unattempted' ? '#fff' : 'var(--warning)',
-                                fontSize: '13px', fontWeight: '600', cursor: 'pointer'
-                            }}
-                        >
-                            ⏭️ Unattempted Questions
-                        </button>
+                        <button onClick={() => handleFilterType('struggling')} style={{
+                            padding: '8px 16px', borderRadius: '20px', border: 'none',
+                            backgroundColor: filterType === 'struggling' ? 'var(--error)' : 'var(--error-light)',
+                            color: filterType === 'struggling' ? '#fff' : 'var(--error)',
+                            fontSize: '13px', fontWeight: '600', cursor: 'pointer'
+                        }}>🔴 Struggling Questions</button>
+                        <button onClick={() => handleFilterType('unattempted')} style={{
+                            padding: '8px 16px', borderRadius: '20px', border: 'none',
+                            backgroundColor: filterType === 'unattempted' ? 'var(--warning)' : 'var(--warning-light)',
+                            color: filterType === 'unattempted' ? '#fff' : 'var(--warning)',
+                            fontSize: '13px', fontWeight: '600', cursor: 'pointer'
+                        }}>⏭️ Unattempted Questions</button>
                     </div>
                 </div>
 
@@ -227,11 +220,7 @@ const TestConfigPage = () => {
                 </div>
 
                 {/* Summary */}
-                <div style={{
-                    ...sectionStyle,
-                    backgroundColor: 'var(--accent-light)',
-                    border: '1px solid var(--accent)'
-                }}>
+                <div style={{ ...sectionStyle, backgroundColor: 'var(--accent-light)', border: '1px solid var(--accent)' }}>
                     <h3 style={{ fontSize: '14px', fontWeight: '700', color: 'var(--accent-text)', marginBottom: '12px' }}>
                         📋 Test Summary
                     </h3>

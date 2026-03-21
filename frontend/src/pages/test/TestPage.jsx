@@ -28,23 +28,27 @@ const TestPage = () => {
         return () => { clearInterval(totalTimerRef.current); };
     }, []);
 
+    const removeFromActiveContests = (cId) => {
+        const existing = JSON.parse(localStorage.getItem('activeContests') || '[]');
+        const updated = existing.filter(c => c.contestId !== cId);
+        localStorage.setItem('activeContests', JSON.stringify(updated));
+    };
+
     const fetchTest = async () => {
         try {
             const res = await API.get(`/tests/${contestId}/questions`);
             setContest(res.data.contest);
             setQuestions(res.data.questions);
 
-            // Calculate remaining time accounting for time already elapsed
+            // Calculate remaining time accounting for elapsed time
             const totalSeconds = res.data.contest.total_time * 60;
             let timeLeft = totalSeconds;
 
-            const activeContest = localStorage.getItem('activeContest');
+            const activeContests = JSON.parse(localStorage.getItem('activeContests') || '[]');
+            const activeContest = activeContests.find(c => c.contestId === contestId);
             if (activeContest) {
-                const { contestId: savedId, startedAt, totalTime } = JSON.parse(activeContest);
-                if (savedId === contestId) {
-                    const elapsed = Math.floor((Date.now() - startedAt) / 1000);
-                    timeLeft = Math.max(0, totalTime - elapsed);
-                }
+                const elapsed = Math.floor((Date.now() - activeContest.startedAt) / 1000);
+                timeLeft = Math.max(0, activeContest.totalTime - elapsed);
             }
 
             const initialAnswers = {};
@@ -129,8 +133,8 @@ const TestPage = () => {
                 });
             }
             await API.post(`/tests/${contestId}/submit`);
-            // Clear active contest from localStorage
-            localStorage.removeItem('activeContest');
+            // Remove this contest from active contests array
+            removeFromActiveContests(contestId);
             navigate(`/test/${contestId}/result`);
         } catch (err) {
             setError('Failed to submit test.');
@@ -173,10 +177,8 @@ const TestPage = () => {
 
     const NavigatorPanel = () => (
         <div style={{
-            backgroundColor: 'var(--bg-card)',
-            borderRadius: '12px',
-            padding: '20px',
-            boxShadow: `0 2px 8px var(--shadow)`,
+            backgroundColor: 'var(--bg-card)', borderRadius: '12px',
+            padding: '20px', boxShadow: `0 2px 8px var(--shadow)`,
             border: '1px solid var(--border)'
         }}>
             <p style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '14px' }}>
@@ -194,9 +196,7 @@ const TestPage = () => {
                             backgroundColor: isCurrent ? 'var(--accent)' : isAnswered ? 'var(--success)' : 'var(--bg-hover)',
                             color: isCurrent || isAnswered ? '#fff' : 'var(--text-secondary)',
                             fontSize: '13px', fontWeight: '700', cursor: 'pointer'
-                        }}>
-                            {idx + 1}
-                        </button>
+                        }}>{idx + 1}</button>
                     );
                 })}
             </div>
@@ -219,14 +219,10 @@ const TestPage = () => {
         <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
             {/* Top Bar */}
             <div style={{
-                backgroundColor: 'var(--navbar-bg)',
-                borderBottom: '1px solid var(--border)',
-                padding: isMobile ? '0 12px' : '0 24px',
-                height: '60px',
-                display: 'flex', alignItems: 'center',
-                justifyContent: 'space-between',
-                position: 'sticky', top: 0, zIndex: 100,
-                boxShadow: `0 1px 4px var(--shadow)`
+                backgroundColor: 'var(--navbar-bg)', borderBottom: '1px solid var(--border)',
+                padding: isMobile ? '0 12px' : '0 24px', height: '60px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                position: 'sticky', top: 0, zIndex: 100, boxShadow: `0 1px 4px var(--shadow)`
             }}>
                 <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: '800', color: 'var(--text-primary)' }}>
                     📝 {isMobile ? 'Test' : 'Test in Progress'}
@@ -239,8 +235,7 @@ const TestPage = () => {
                     )}
                     <div style={{
                         fontSize: isMobile ? '16px' : '20px', fontWeight: '800', color: timerColor,
-                        backgroundColor: 'var(--bg-hover)',
-                        padding: '6px 10px', borderRadius: '8px'
+                        backgroundColor: 'var(--bg-hover)', padding: '6px 10px', borderRadius: '8px'
                     }}>
                         ⏱ {formatTimerDisplay(totalTimeLeft)}
                     </div>
@@ -249,53 +244,32 @@ const TestPage = () => {
                             padding: '6px 10px', backgroundColor: 'var(--accent-light)',
                             color: 'var(--accent-text)', border: 'none', borderRadius: '8px',
                             fontSize: '12px', fontWeight: '700', cursor: 'pointer'
-                        }}>
-                            {answeredCount}/{questions.length}
-                        </button>
+                        }}>{answeredCount}/{questions.length}</button>
                     )}
                     <button onClick={() => setShowSubmitModal(true)} disabled={submitting} style={{
-                        padding: isMobile ? '6px 10px' : '8px 18px',
-                        backgroundColor: 'var(--accent)',
+                        padding: isMobile ? '6px 10px' : '8px 18px', backgroundColor: 'var(--accent)',
                         color: '#fff', border: 'none', borderRadius: '8px',
                         fontSize: isMobile ? '12px' : '13px', fontWeight: '700',
                         cursor: submitting ? 'not-allowed' : 'pointer'
-                    }}>
-                        {submitting ? '...' : 'Submit'}
-                    </button>
+                    }}>{submitting ? '...' : 'Submit'}</button>
                 </div>
             </div>
 
-            {/* Mobile Navigator Dropdown */}
             {isMobile && showNavigator && (
                 <div style={{ padding: '12px', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
                     <NavigatorPanel />
                 </div>
             )}
 
-            <div style={{
-                maxWidth: '1000px', margin: '0 auto',
-                padding: isMobile ? '16px' : '24px',
-                display: 'flex', gap: '24px', alignItems: 'flex-start'
-            }}>
-                {/* Question Panel */}
+            <div style={{ maxWidth: '1000px', margin: '0 auto', padding: isMobile ? '16px' : '24px', display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                        backgroundColor: 'var(--bg-card)', borderRadius: '12px',
-                        padding: isMobile ? '16px' : '28px',
-                        boxShadow: `0 2px 8px var(--shadow)`,
-                        border: '1px solid var(--border)'
-                    }}>
+                    <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '12px', padding: isMobile ? '16px' : '28px', boxShadow: `0 2px 8px var(--shadow)`, border: '1px solid var(--border)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                             <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>
                                 Q {currentIndex + 1} of {questions.length}
                             </span>
-                            <span style={{
-                                padding: '4px 10px', borderRadius: '20px',
-                                backgroundColor: 'var(--accent-light)', color: 'var(--accent-text)',
-                                fontSize: '11px', fontWeight: '700'
-                            }}>
-                                {currentQ?.type === 'mcq_single' ? 'Single' :
-                                    currentQ?.type === 'mcq_multiple' ? 'Multiple' : 'Fill Blank'}
+                            <span style={{ padding: '4px 10px', borderRadius: '20px', backgroundColor: 'var(--accent-light)', color: 'var(--accent-text)', fontSize: '11px', fontWeight: '700' }}>
+                                {currentQ?.type === 'mcq_single' ? 'Single' : currentQ?.type === 'mcq_multiple' ? 'Multiple' : 'Fill Blank'}
                             </span>
                         </div>
 
@@ -305,117 +279,61 @@ const TestPage = () => {
                             </p>
                         )}
                         {currentQ?.questionImageUrl && (
-                            <img src={currentQ.questionImageUrl} alt="Question"
-                                style={{ maxWidth: '100%', borderRadius: '8px', marginBottom: '20px', display: 'block' }} />
+                            <img src={currentQ.questionImageUrl} alt="Question" style={{ maxWidth: '100%', borderRadius: '8px', marginBottom: '20px', display: 'block' }} />
                         )}
 
-                        {/* MCQ Single */}
                         {currentQ?.type === 'mcq_single' && (
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                 {currentQ.options?.map((opt, idx) => (
-                                    <div key={opt.id} onClick={() => handleAnswerChange(currentQ.contestQuestionId, opt.id)}
-                                        style={optionStyle(selectedAnswer === opt.id)}>
-                                        <div style={{
-                                            width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0,
-                                            border: `2px solid ${selectedAnswer === opt.id ? 'var(--accent)' : 'var(--border)'}`,
-                                            backgroundColor: selectedAnswer === opt.id ? 'var(--accent)' : 'var(--bg-card)',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                        }}>
-                                            {selectedAnswer === opt.id && (
-                                                <div style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#fff' }} />
-                                            )}
+                                    <div key={opt.id} onClick={() => handleAnswerChange(currentQ.contestQuestionId, opt.id)} style={optionStyle(selectedAnswer === opt.id)}>
+                                        <div style={{ width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0, border: `2px solid ${selectedAnswer === opt.id ? 'var(--accent)' : 'var(--border)'}`, backgroundColor: selectedAnswer === opt.id ? 'var(--accent)' : 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            {selectedAnswer === opt.id && <div style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#fff' }} />}
                                         </div>
                                         <span style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: selectedAnswer === opt.id ? '600' : '400' }}>
                                             {String.fromCharCode(65 + idx)}. {opt.option_text || '(Image)'}
                                         </span>
-                                        {opt.option_image_url && (
-                                            <img src={opt.option_image_url} alt="" style={{ maxHeight: '60px', borderRadius: '4px' }} />
-                                        )}
+                                        {opt.option_image_url && <img src={opt.option_image_url} alt="" style={{ maxHeight: '60px', borderRadius: '4px' }} />}
                                     </div>
                                 ))}
                             </div>
                         )}
 
-                        {/* MCQ Multiple */}
                         {currentQ?.type === 'mcq_multiple' && (
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>Select all correct answers</p>
                                 {currentQ.options?.map((opt, idx) => (
-                                    <div key={opt.id}
-                                        onClick={() => handleMultipleAnswerChange(currentQ.contestQuestionId, opt.id)}
-                                        style={optionStyle(selectedMultiple.includes(opt.id))}>
-                                        <div style={{
-                                            width: '20px', height: '20px', borderRadius: '4px', flexShrink: 0,
-                                            border: `2px solid ${selectedMultiple.includes(opt.id) ? 'var(--accent)' : 'var(--border)'}`,
-                                            backgroundColor: selectedMultiple.includes(opt.id) ? 'var(--accent)' : 'var(--bg-card)',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                        }}>
-                                            {selectedMultiple.includes(opt.id) && (
-                                                <span style={{ color: '#fff', fontSize: '11px', fontWeight: '700' }}>✓</span>
-                                            )}
+                                    <div key={opt.id} onClick={() => handleMultipleAnswerChange(currentQ.contestQuestionId, opt.id)} style={optionStyle(selectedMultiple.includes(opt.id))}>
+                                        <div style={{ width: '20px', height: '20px', borderRadius: '4px', flexShrink: 0, border: `2px solid ${selectedMultiple.includes(opt.id) ? 'var(--accent)' : 'var(--border)'}`, backgroundColor: selectedMultiple.includes(opt.id) ? 'var(--accent)' : 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            {selectedMultiple.includes(opt.id) && <span style={{ color: '#fff', fontSize: '11px', fontWeight: '700' }}>✓</span>}
                                         </div>
                                         <span style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: selectedMultiple.includes(opt.id) ? '600' : '400' }}>
                                             {String.fromCharCode(65 + idx)}. {opt.option_text || '(Image)'}
                                         </span>
-                                        {opt.option_image_url && (
-                                            <img src={opt.option_image_url} alt="" style={{ maxHeight: '60px', borderRadius: '4px' }} />
-                                        )}
+                                        {opt.option_image_url && <img src={opt.option_image_url} alt="" style={{ maxHeight: '60px', borderRadius: '4px' }} />}
                                     </div>
                                 ))}
                             </div>
                         )}
 
-                        {/* Fill in Blank */}
                         {currentQ?.type === 'fill_blank' && (
                             <div>
                                 <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Type your answer below:</p>
                                 <input type="text" value={selectedAnswer || ''}
                                     onChange={e => handleAnswerChange(currentQ.contestQuestionId, e.target.value)}
                                     placeholder="Enter your answer..."
-                                    style={{
-                                        width: '100%', padding: '12px 14px',
-                                        borderRadius: '8px', border: '2px solid var(--border)',
-                                        fontSize: '15px', outline: 'none',
-                                        boxSizing: 'border-box', fontFamily: 'inherit',
-                                        backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)'
-                                    }} />
+                                    style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', border: '2px solid var(--border)', fontSize: '15px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)' }} />
                             </div>
                         )}
 
-                        {/* Navigation */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px', gap: '12px' }}>
-                            <button onClick={() => handleQuestionSwitch(currentIndex - 1)}
-                                disabled={currentIndex === 0} style={{
-                                    padding: isMobile ? '10px 16px' : '10px 24px',
-                                    backgroundColor: 'var(--bg-card)',
-                                    color: 'var(--text-primary)', border: '1px solid var(--border)',
-                                    borderRadius: '8px', fontSize: '14px', fontWeight: '600',
-                                    cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
-                                    opacity: currentIndex === 0 ? 0.4 : 1
-                                }}>
-                                ← Prev
-                            </button>
-                            <button onClick={() => handleQuestionSwitch(currentIndex + 1)}
-                                disabled={currentIndex === questions.length - 1} style={{
-                                    padding: isMobile ? '10px 16px' : '10px 24px',
-                                    backgroundColor: 'var(--accent)',
-                                    color: '#fff', border: 'none', borderRadius: '8px',
-                                    fontSize: '14px', fontWeight: '600',
-                                    cursor: currentIndex === questions.length - 1 ? 'not-allowed' : 'pointer',
-                                    opacity: currentIndex === questions.length - 1 ? 0.4 : 1
-                                }}>
-                                Next →
-                            </button>
+                            <button onClick={() => handleQuestionSwitch(currentIndex - 1)} disabled={currentIndex === 0} style={{ padding: isMobile ? '10px 16px' : '10px 24px', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: currentIndex === 0 ? 'not-allowed' : 'pointer', opacity: currentIndex === 0 ? 0.4 : 1 }}>← Prev</button>
+                            <button onClick={() => handleQuestionSwitch(currentIndex + 1)} disabled={currentIndex === questions.length - 1} style={{ padding: isMobile ? '10px 16px' : '10px 24px', backgroundColor: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: currentIndex === questions.length - 1 ? 'not-allowed' : 'pointer', opacity: currentIndex === questions.length - 1 ? 0.4 : 1 }}>Next →</button>
                         </div>
                     </div>
                 </div>
 
-                {/* Desktop Navigator */}
                 {!isMobile && (
-                    <div style={{
-                        width: '220px', flexShrink: 0,
-                        position: 'sticky', top: '80px'
-                    }}>
+                    <div style={{ width: '220px', flexShrink: 0, position: 'sticky', top: '80px' }}>
                         <NavigatorPanel />
                     </div>
                 )}
