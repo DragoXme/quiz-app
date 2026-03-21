@@ -204,8 +204,8 @@ const CreateQuestionPage = () => {
                             )}
                         </div>
 
-                        {/* Tags */}
-                        <div style={glassCard}>
+                        {/* Tags — elevated z-index so dropdown appears above cards below */}
+                        <div style={{ ...glassCard, position: 'relative', zIndex: 10 }}>
                             <label style={labelStyle}>Tags * (at least 1 required)</label>
                             <TagInput selectedTags={tags} onChange={setTags} />
                         </div>

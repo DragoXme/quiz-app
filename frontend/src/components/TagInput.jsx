@@ -96,42 +96,44 @@ const TagInput = ({ selectedTags, onChange }) => {
         }
     };
 
+    const dropdownStyle = {
+        position: 'absolute',
+        top: 'calc(100% + 4px)',
+        left: 0,
+        right: 0,
+        background: 'var(--glass-bg)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        border: '1px solid var(--glass-border)',
+        borderRadius: '12px',
+        boxShadow: '0 8px 32px var(--shadow-md)',
+        // Use a very high z-index to escape any stacking context
+        zIndex: 9999,
+        maxHeight: '200px',
+        overflowY: 'auto'
+    };
+
     return (
-        <div style={{ position: 'relative' }}>
+        // isolation: isolate creates its own stacking context so z-index works correctly
+        <div style={{ position: 'relative', isolation: 'isolate' }}>
             {/* Selected Tags */}
             <div style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '8px',
+                display: 'flex', flexWrap: 'wrap', gap: '8px',
                 marginBottom: selectedTags.length > 0 ? '10px' : '0'
             }}>
                 {selectedTags.map(tag => (
                     <span key={tag.id} style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        backgroundColor: 'var(--accent-light)',
-                        color: 'var(--accent-text)',
-                        padding: '4px 10px',
-                        borderRadius: '20px',
-                        fontSize: '13px',
-                        fontWeight: '500'
+                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                        backgroundColor: 'var(--accent-light)', color: 'var(--accent-text)',
+                        padding: '4px 10px', borderRadius: '20px',
+                        fontSize: '13px', fontWeight: '500'
                     }}>
                         {tag.name}
-                        <button
-                            onClick={() => handleRemoveTag(tag.id)}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                color: 'var(--accent-text)',
-                                fontSize: '16px',
-                                lineHeight: '1',
-                                padding: '0'
-                            }}
-                        >
-                            ×
-                        </button>
+                        <button onClick={() => handleRemoveTag(tag.id)} style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            color: 'var(--accent-text)', fontSize: '16px',
+                            lineHeight: '1', padding: '0'
+                        }}>×</button>
                     </span>
                 ))}
             </div>
@@ -145,46 +147,28 @@ const TagInput = ({ selectedTags, onChange }) => {
                 onKeyDown={handleKeyDown}
                 placeholder="Search or add tags..."
                 style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--input-border)',
-                    fontSize: '14px',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    backgroundColor: 'var(--bg-input)',
+                    width: '100%', padding: '10px 14px', borderRadius: '10px',
+                    border: '1.5px solid var(--input-border)', fontSize: '14px',
+                    outline: 'none', boxSizing: 'border-box',
+                    background: 'var(--glass-bg)', backdropFilter: 'blur(8px)',
                     color: 'var(--text-primary)'
                 }}
             />
 
             {/* Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
-                <div ref={suggestionsRef} style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    backgroundColor: 'var(--bg-card)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '8px',
-                    boxShadow: `0 4px 12px var(--shadow)`,
-                    zIndex: 100,
-                    maxHeight: '200px',
-                    overflowY: 'auto'
-                }}>
-                    {suggestions.map(tag => (
+                <div ref={suggestionsRef} style={dropdownStyle}>
+                    {suggestions.map((tag, idx) => (
                         <div
                             key={tag.id}
                             onClick={() => handleSelectTag(tag)}
                             style={{
-                                padding: '10px 14px',
-                                cursor: 'pointer',
-                                fontSize: '14px',
-                                borderBottom: '1px solid var(--border-light)',
-                                color: 'var(--text-primary)'
+                                padding: '10px 14px', cursor: 'pointer', fontSize: '14px',
+                                borderBottom: idx < suggestions.length - 1 ? '1px solid var(--border-light)' : 'none',
+                                color: 'var(--text-primary)', transition: 'background 0.1s'
                             }}
-                            onMouseEnter={e => e.target.style.backgroundColor = 'var(--bg-hover)'}
-                            onMouseLeave={e => e.target.style.backgroundColor = 'var(--bg-card)'}
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
+                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                         >
                             {tag.name}
                         </div>
@@ -194,51 +178,21 @@ const TagInput = ({ selectedTags, onChange }) => {
 
             {/* Confirm New Tag */}
             {showConfirm && inputValue.trim() !== '' && (
-                <div ref={suggestionsRef} style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    backgroundColor: 'var(--bg-card)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '8px',
-                    boxShadow: `0 4px 12px var(--shadow)`,
-                    zIndex: 100,
-                    padding: '12px 14px'
-                }}>
+                <div ref={suggestionsRef} style={{ ...dropdownStyle, maxHeight: 'none', padding: '14px' }}>
                     <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '10px' }}>
-                        Would you like to create the tag <strong style={{ color: 'var(--text-primary)' }}>"{inputValue.trim()}"</strong>?
+                        Create tag <strong style={{ color: 'var(--text-primary)' }}>"{inputValue.trim()}"</strong>?
                     </p>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                            onClick={handleCreateTag}
-                            style={{
-                                padding: '6px 14px',
-                                backgroundColor: 'var(--accent)',
-                                color: '#fff',
-                                border: 'none',
-                                borderRadius: '6px',
-                                fontSize: '13px',
-                                cursor: 'pointer',
-                                fontWeight: '600'
-                            }}
-                        >
-                            Yes, Create
-                        </button>
-                        <button
-                            onClick={() => { setShowConfirm(false); setInputValue(''); }}
-                            style={{
-                                padding: '6px 14px',
-                                backgroundColor: 'var(--bg-card)',
-                                color: 'var(--text-primary)',
-                                border: '1px solid var(--border)',
-                                borderRadius: '6px',
-                                fontSize: '13px',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Cancel
-                        </button>
+                        <button onClick={handleCreateTag} style={{
+                            padding: '6px 14px', background: 'var(--gradient-accent)',
+                            color: '#fff', border: 'none', borderRadius: '8px',
+                            fontSize: '13px', cursor: 'pointer', fontWeight: '600'
+                        }}>Yes, Create</button>
+                        <button onClick={() => { setShowConfirm(false); setInputValue(''); }} style={{
+                            padding: '6px 14px', background: 'var(--glass-bg)',
+                            color: 'var(--text-primary)', border: '1px solid var(--border)',
+                            borderRadius: '8px', fontSize: '13px', cursor: 'pointer'
+                        }}>Cancel</button>
                     </div>
                 </div>
             )}
