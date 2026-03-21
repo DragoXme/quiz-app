@@ -96,7 +96,11 @@
 /* ============================================
    BASE
    ============================================ */
-html { height: 100%; }
+html {
+    height: 100%;
+    /* Fix 1: prevent touchpad/browser overscroll bounce */
+    overscroll-behavior: none;
+}
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
@@ -105,10 +109,12 @@ body {
     -webkit-font-smoothing: antialiased;
     min-height: 100%;
     transition: color 0.3s ease;
+    /* Fix 1: prevent touchpad/browser overscroll bounce */
+    overscroll-behavior: none;
 }
 
 /* ============================================
-   LIGHT MODE — indigo top-left, violet bottom-right
+   LIGHT MODE BACKGROUND
    ============================================ */
 :root[data-theme="light"] body {
     background-color: #E4E6FF;
@@ -119,7 +125,7 @@ body {
 }
 
 /* ============================================
-   DARK MODE — deep indigo top-left, deep violet bottom-right
+   DARK MODE BACKGROUND
    ============================================ */
 :root[data-theme="dark"] body {
     background-color: #07070F;

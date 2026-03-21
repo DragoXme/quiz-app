@@ -11,7 +11,7 @@ const TestConfigPage = () => {
     const [totalTime, setTotalTime] = useState(30);
     const [availableTags, setAvailableTags] = useState([]);
     const [selectedTagIds, setSelectedTagIds] = useState([]);
-    const [filterTypes, setFilterTypes] = useState([]);  // now an array
+    const [filterTypes, setFilterTypes] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -85,6 +85,12 @@ const TestConfigPage = () => {
 
     const filterSummary = filterTypes.length === 0 ? 'None'
         : filterTypes.map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(' + ');
+
+    // In test config: show all tags EXCEPT 'starred' and 'fill in the blank'
+    // mcq single correct and mcq multiple correct ARE shown so user can filter by type
+    const visibleTags = availableTags.filter(t =>
+        t.name !== 'starred' && t.name !== 'fill in the blank'
+    );
 
     return (
         <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
@@ -183,11 +189,11 @@ const TestConfigPage = () => {
                 <div style={glassCard}>
                     <label style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>🏷️ Filter by Tags (Optional)</label>
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>Questions with selected tags will be prioritized.</p>
-                    {availableTags.filter(t => t.name !== 'mcq single correct' && t.name !== 'mcq multiple correct' && t.name !== 'fill in the blank').length === 0 ? (
+                    {visibleTags.length === 0 ? (
                         <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No tags available yet.</p>
                     ) : (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                            {availableTags.filter(t => t.name !== 'mcq single correct' && t.name !== 'mcq multiple correct' && t.name !== 'fill in the blank').map(tag => (
+                            {visibleTags.map(tag => (
                                 <button key={tag.id} onClick={() => handleTagToggle(tag.id)} style={{
                                     padding: '6px 12px', borderRadius: '20px', border: 'none',
                                     background: selectedTagIds.includes(tag.id) ? 'var(--gradient-accent)' : 'var(--accent-light)',
