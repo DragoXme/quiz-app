@@ -102,7 +102,6 @@ const getQuestionsHandler = async (req, res, next) => {
             paramIndex += 2;
         }
 
-        // Filter types — support both, one, or none
         const hasStruggling = parsedFilterTypes.includes('struggling');
         const hasUnattempted = parsedFilterTypes.includes('unattempted');
 
@@ -110,12 +109,18 @@ const getQuestionsHandler = async (req, res, next) => {
             baseQuery += ` AND (
                 (q.correct_count <= q.wrong_count AND q.wrong_count > 0)
                 OR
+                (q.wrong_count = 0 AND q.correct_count = 0 AND q.unattempted_count = 0)
+                OR
                 ((q.wrong_count + q.correct_count) <= q.unattempted_count AND q.unattempted_count > 0)
             )`;
         } else if (hasStruggling) {
             baseQuery += ` AND q.correct_count <= q.wrong_count AND q.wrong_count > 0`;
         } else if (hasUnattempted) {
-            baseQuery += ` AND (q.wrong_count + q.correct_count) <= q.unattempted_count AND q.unattempted_count > 0`;
+            baseQuery += ` AND (
+                (q.wrong_count = 0 AND q.correct_count = 0 AND q.unattempted_count = 0)
+                OR
+                ((q.wrong_count + q.correct_count) <= q.unattempted_count AND q.unattempted_count > 0)
+            )`;
         }
 
         const validSortFields = { 'min_time': 'q.min_time', 'max_time': 'q.max_time', 'diff_time': 'ABS(q.max_time - q.min_time)' };

@@ -7,6 +7,11 @@ import CustomSelect from '../../components/CustomSelect';
 import { getQuestionTypeLabel, truncateText } from '../../utils/helpers';
 import useWindowSize from '../../hooks/useWindowSize';
 
+// Helper: is this question unattempted?
+const isUnattempted = (q) =>
+    (q.wrong_count === 0 && q.correct_count === 0 && q.unattempted_count === 0) ||
+    ((q.wrong_count + q.correct_count) <= q.unattempted_count && q.unattempted_count > 0);
+
 const ExploreQuestionsPage = () => {
     const navigate = useNavigate();
     const { isMobile } = useWindowSize();
@@ -118,7 +123,6 @@ const ExploreQuestionsPage = () => {
                             <button onClick={handleClearFilters} style={{ padding: '4px 10px', backgroundColor: 'var(--error-light)', color: 'var(--error)', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Clear All</button>
                         </div>
 
-                        {/* Status Filter — multi-select */}
                         <div style={{ marginBottom: '14px' }}>
                             <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Filter by Status (select one or both):</p>
                             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -134,8 +138,7 @@ const ExploreQuestionsPage = () => {
                                             backgroundColor: isActive ? f.activeColor : f.lightColor,
                                             color: isActive ? '#fff' : f.textColor,
                                             fontSize: '12px', fontWeight: '600', cursor: 'pointer',
-                                            transition: 'all 0.15s',
-                                            display: 'flex', alignItems: 'center', gap: '5px'
+                                            transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: '5px'
                                         }}>
                                             {isActive && <span style={{ fontSize: '10px' }}>✓</span>}
                                             {f.label}
@@ -145,7 +148,6 @@ const ExploreQuestionsPage = () => {
                             </div>
                         </div>
 
-                        {/* Tag Filter */}
                         <div style={{ marginBottom: '14px' }}>
                             <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Filter by Tags:</p>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -160,7 +162,6 @@ const ExploreQuestionsPage = () => {
                             </div>
                         </div>
 
-                        {/* Sort */}
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                             <div style={{ flex: 1, minWidth: '140px' }}>
                                 <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>Sort By:</p>
@@ -214,10 +215,16 @@ const ExploreQuestionsPage = () => {
                             >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
                                     <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)' }}>#{(currentPage - 1) * 10 + idx + 1}</span>
-                                    <span style={{ padding: '2px 8px', borderRadius: '20px', backgroundColor: 'var(--accent-light)', color: 'var(--accent-text)', fontSize: '11px', fontWeight: '700' }}>{getQuestionTypeLabel(q.type)}</span>
+                                    <span style={{ padding: '2px 8px', borderRadius: '20px', backgroundColor: 'var(--accent-light)', color: 'var(--accent-text)', fontSize: '11px', fontWeight: '700' }}>
+                                        {getQuestionTypeLabel(q.type)}
+                                    </span>
                                     {q.is_starred && <span style={{ fontSize: '14px' }}>⭐</span>}
-                                    {q.correct_count <= q.wrong_count && q.wrong_count > 0 && <span style={{ padding: '2px 8px', borderRadius: '20px', backgroundColor: 'var(--error-light)', color: 'var(--error)', fontSize: '11px', fontWeight: '700' }}>🔴 Struggling</span>}
-                                    {(q.wrong_count + q.correct_count) <= q.unattempted_count && q.unattempted_count > 0 && <span style={{ padding: '2px 8px', borderRadius: '20px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', fontSize: '11px', fontWeight: '700' }}>⏭️ Unattempted</span>}
+                                    {q.correct_count <= q.wrong_count && q.wrong_count > 0 && (
+                                        <span style={{ padding: '2px 8px', borderRadius: '20px', backgroundColor: 'var(--error-light)', color: 'var(--error)', fontSize: '11px', fontWeight: '700' }}>🔴 Struggling</span>
+                                    )}
+                                    {isUnattempted(q) && (
+                                        <span style={{ padding: '2px 8px', borderRadius: '20px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', fontSize: '11px', fontWeight: '700' }}>⏭️ Unattempted</span>
+                                    )}
                                 </div>
                                 {q.question_text && <p style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: '500', marginBottom: '10px', lineHeight: '1.5' }}>{truncateText(q.question_text, isMobile ? 100 : 150)}</p>}
                                 {q.question_image_url && !q.question_text && <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '10px' }}>📷 Image question</p>}

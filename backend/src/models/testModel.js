@@ -55,23 +55,26 @@ const getQuestionsForTest = async (userId, tagIds, totalCount, filterTypes = [])
     let finalQuestions = [];
 
     // Build filter condition from filterTypes array
-    // If both selected: question must match either condition (OR)
-    // If one selected: question must match that condition
     let filterCondition = '';
     if (filterTypes.includes('struggling') && filterTypes.includes('unattempted')) {
         filterCondition = `AND (
             (q.correct_count <= q.wrong_count AND q.wrong_count > 0)
+            OR
+            (q.wrong_count = 0 AND q.correct_count = 0 AND q.unattempted_count = 0)
             OR
             ((q.wrong_count + q.correct_count) <= q.unattempted_count AND q.unattempted_count > 0)
         )`;
     } else if (filterTypes.includes('struggling')) {
         filterCondition = `AND q.correct_count <= q.wrong_count AND q.wrong_count > 0`;
     } else if (filterTypes.includes('unattempted')) {
-        filterCondition = `AND (q.wrong_count + q.correct_count) <= q.unattempted_count AND q.unattempted_count > 0`;
+        filterCondition = `AND (
+            (q.wrong_count = 0 AND q.correct_count = 0 AND q.unattempted_count = 0)
+            OR
+            ((q.wrong_count + q.correct_count) <= q.unattempted_count AND q.unattempted_count > 0)
+        )`;
     }
 
     if (tagIds && tagIds.length > 0) {
-        // Priority: questions matching ALL selected tags
         const priorityResult = await pool.query(
             `SELECT q.id, q.min_time, q.max_time
              FROM questions q
@@ -90,7 +93,6 @@ const getQuestionsForTest = async (userId, tagIds, totalCount, filterTypes = [])
             }
         }
 
-        // Secondary: questions matching at least 1 tag
         if (finalQuestions.length < totalCount) {
             const secondaryResult = await pool.query(
                 `SELECT q.id, q.min_time, q.max_time
@@ -112,7 +114,6 @@ const getQuestionsForTest = async (userId, tagIds, totalCount, filterTypes = [])
         }
     }
 
-    // Fill remaining slots with random questions
     if (finalQuestions.length < totalCount) {
         const needed = totalCount - finalQuestions.length;
         const excludeIds = [...selectedIds];
