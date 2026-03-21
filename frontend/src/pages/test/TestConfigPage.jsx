@@ -11,6 +11,7 @@ const TestConfigPage = () => {
     const [totalTime, setTotalTime] = useState(30);
     const [availableTags, setAvailableTags] = useState([]);
     const [selectedTagIds, setSelectedTagIds] = useState([]);
+    const [filterType, setFilterType] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -29,6 +30,10 @@ const TestConfigPage = () => {
         );
     };
 
+    const handleFilterType = (type) => {
+        setFilterType(prev => prev === type ? '' : type);
+    };
+
     const handleStartTest = async () => {
         setError('');
         if (totalQuestions < 1) { setError('Total questions must be at least 1.'); return; }
@@ -36,7 +41,7 @@ const TestConfigPage = () => {
         setLoading(true);
         try {
             const res = await API.post('/tests/configure', {
-                totalQuestions, totalTime, tagIds: selectedTagIds
+                totalQuestions, totalTime, tagIds: selectedTagIds, filterType
             });
             navigate(`/test/${res.data.contestId}`);
         } catch (err) {
@@ -146,6 +151,40 @@ const TestConfigPage = () => {
                     </div>
                 </div>
 
+                {/* Question Filter */}
+                <div style={sectionStyle}>
+                    <label style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>
+                        🎯 Question Filter (Optional)
+                    </label>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                        Focus on questions that need more practice.
+                    </p>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        <button
+                            onClick={() => handleFilterType('struggling')}
+                            style={{
+                                padding: '8px 16px', borderRadius: '20px', border: 'none',
+                                backgroundColor: filterType === 'struggling' ? 'var(--error)' : 'var(--error-light)',
+                                color: filterType === 'struggling' ? '#fff' : 'var(--error)',
+                                fontSize: '13px', fontWeight: '600', cursor: 'pointer'
+                            }}
+                        >
+                            🔴 Struggling Questions
+                        </button>
+                        <button
+                            onClick={() => handleFilterType('unattempted')}
+                            style={{
+                                padding: '8px 16px', borderRadius: '20px', border: 'none',
+                                backgroundColor: filterType === 'unattempted' ? 'var(--warning)' : 'var(--warning-light)',
+                                color: filterType === 'unattempted' ? '#fff' : 'var(--warning)',
+                                fontSize: '13px', fontWeight: '600', cursor: 'pointer'
+                            }}
+                        >
+                            ⏭️ Unattempted Questions
+                        </button>
+                    </div>
+                </div>
+
                 {/* Tag Selection */}
                 <div style={sectionStyle}>
                     <label style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>
@@ -154,11 +193,19 @@ const TestConfigPage = () => {
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
                         Questions with selected tags will be prioritized.
                     </p>
-                    {availableTags.length === 0 ? (
+                    {availableTags.filter(t =>
+                        t.name !== 'mcq single correct' &&
+                        t.name !== 'mcq multiple correct' &&
+                        t.name !== 'fill in the blank'
+                    ).length === 0 ? (
                         <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No tags available yet.</p>
                     ) : (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                            {availableTags.map(tag => (
+                            {availableTags.filter(t =>
+                                t.name !== 'mcq single correct' &&
+                                t.name !== 'mcq multiple correct' &&
+                                t.name !== 'fill in the blank'
+                            ).map(tag => (
                                 <button key={tag.id} onClick={() => handleTagToggle(tag.id)} style={{
                                     padding: '6px 12px', borderRadius: '20px', border: 'none',
                                     backgroundColor: selectedTagIds.includes(tag.id) ? 'var(--accent)' : 'var(--accent-light)',
@@ -186,11 +233,11 @@ const TestConfigPage = () => {
                             { label: 'Questions', value: totalQuestions },
                             { label: 'Time', value: `${totalTime} min` },
                             { label: 'Tags', value: selectedTagIds.length === 0 ? 'Any' : selectedTagIds.length },
-                            { label: 'Time/Q', value: `${Math.floor((totalTime * 60) / totalQuestions)}s` }
+                            { label: 'Filter', value: filterType ? filterType : 'None' }
                         ].map(item => (
                             <div key={item.label} style={{ backgroundColor: 'var(--bg-card)', borderRadius: '8px', padding: '10px 12px' }}>
                                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>{item.label}</p>
-                                <p style={{ fontSize: '18px', fontWeight: '800', color: 'var(--accent-text)' }}>{item.value}</p>
+                                <p style={{ fontSize: '16px', fontWeight: '800', color: 'var(--accent-text)' }}>{item.value}</p>
                             </div>
                         ))}
                     </div>

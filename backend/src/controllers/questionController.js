@@ -21,6 +21,8 @@ const {
     createTag
 } = require('../models/tagModel');
 
+const pool = require('../config/db');
+
 const createQuestionHandler = async (req, res, next) => {
     try {
         const {
@@ -47,7 +49,6 @@ const createQuestionHandler = async (req, res, next) => {
             return res.status(400).json({ message: 'At least one tag is required.' });
         }
 
-        // Validate based on type
         if (type === 'mcq_single') {
             if (!options || options.length < 2) {
                 return res.status(400).json({ message: 'At least 2 options are required.' });
@@ -76,59 +77,36 @@ const createQuestionHandler = async (req, res, next) => {
             }
         }
 
-        // Create question
         const question = await createQuestion(
-            req.user.id,
-            type,
-            questionText,
-            questionImageUrl,
-            solutionText,
-            solutionImageUrl,
-            isStarred
+            req.user.id, type, questionText, questionImageUrl,
+            solutionText, solutionImageUrl, isStarred
         );
 
-        // Create options for MCQ
         if (type === 'mcq_single' || type === 'mcq_multiple') {
             for (let i = 0; i < options.length; i++) {
-                await createOption(
-                    question.id,
-                    options[i].optionText,
-                    options[i].optionImageUrl,
-                    options[i].isCorrect,
-                    i + 1
-                );
+                await createOption(question.id, options[i].optionText, options[i].optionImageUrl, options[i].isCorrect, i + 1);
             }
         }
 
-        // Create fill answer
         if (type === 'fill_blank') {
             await createFillAnswer(question.id, fillAnswer.trim());
         }
 
-        // Handle tags
         const autoTags = ['mcq single correct', 'mcq multiple correct', 'fill in the blank', 'starred'];
         const allTags = [...tags.filter(t => !autoTags.includes(t.toLowerCase().trim()))];
 
-        // Auto-add question type tag
         const typeTagMap = {
             'mcq_single': 'mcq single correct',
             'mcq_multiple': 'mcq multiple correct',
             'fill_blank': 'fill in the blank'
         };
         allTags.push(typeTagMap[type]);
+        if (isStarred) allTags.push('starred');
 
-        // Auto-add starred tag
-        if (isStarred) {
-            allTags.push('starred');
-        }
-
-        // Add all tags to question
         for (const tagName of allTags) {
             const normalizedName = tagName.toLowerCase().trim();
             let tag = await findTagByName(normalizedName);
-            if (!tag) {
-                tag = await createTag(normalizedName);
-            }
+            if (!tag) tag = await createTag(normalizedName);
             await addTagToQuestion(question.id, tag.id);
         }
 
@@ -138,12 +116,7 @@ const createQuestionHandler = async (req, res, next) => {
 
         res.status(201).json({
             message: 'Question created successfully.',
-            question: {
-                ...question,
-                tags: questionTags,
-                options: questionOptions,
-                fillAnswer: questionFillAnswer
-            }
+            question: { ...question, tags: questionTags, options: questionOptions, fillAnswer: questionFillAnswer }
         });
     } catch (error) {
         next(error);
@@ -152,31 +125,68 @@ const createQuestionHandler = async (req, res, next) => {
 
 const getQuestionsHandler = async (req, res, next) => {
     try {
-        const {
-            tagIds,
-            sortBy,
-            sortOrder,
-            page = 1,
-            limit = 10
-        } = req.query;
+        const { tagIds, sortBy, sortOrder, page = 1, limit = 10, filterType } = req.query;
 
         const parsedTagIds = tagIds ? JSON.parse(tagIds) : [];
         const parsedPage = parseInt(page);
         const parsedLimit = parseInt(limit);
+        const offset = (parsedPage - 1) * parsedLimit;
 
-        const questions = await getQuestionsForUser(
-            req.user.id,
-            parsedTagIds,
-            sortBy,
-            sortOrder,
-            parsedPage,
-            parsedLimit
+        let baseQuery = `FROM questions q WHERE q.user_id = $1`;
+        const params = [req.user.id];
+        let paramIndex = 2;
+
+        // Tag filter
+        if (parsedTagIds.length > 0) {
+            baseQuery += ` AND (
+                SELECT COUNT(DISTINCT qt.tag_id)
+                FROM question_tags qt
+                WHERE qt.question_id = q.id
+                AND qt.tag_id = ANY($${paramIndex}::uuid[])
+            ) = $${paramIndex + 1}`;
+            params.push(parsedTagIds);
+            params.push(parsedTagIds.length);
+            paramIndex += 2;
+        }
+
+        // Struggling filter: correct_count <= wrong_count
+        if (filterType === 'struggling') {
+            baseQuery += ` AND q.correct_count <= q.wrong_count AND q.wrong_count > 0`;
+        }
+
+        // Unattempted filter: wrong + correct <= unattempted
+        if (filterType === 'unattempted') {
+            baseQuery += ` AND (q.wrong_count + q.correct_count) <= q.unattempted_count AND q.unattempted_count > 0`;
+        }
+
+        const validSortFields = {
+            'min_time': 'q.min_time',
+            'max_time': 'q.max_time',
+            'diff_time': 'ABS(q.max_time - q.min_time)'
+        };
+        const validSortOrders = ['ASC', 'DESC'];
+        const sortField = validSortFields[sortBy] || null;
+        const order = validSortOrders.includes(sortOrder?.toUpperCase()) ? sortOrder.toUpperCase() : 'ASC';
+
+        let orderClause = sortField
+            ? ` ORDER BY (${sortField} IS NULL) ASC, ${sortField} ${order}`
+            : ` ORDER BY q.created_at DESC`;
+
+        // Count query
+        const countResult = await pool.query(
+            `SELECT COUNT(*) ${baseQuery}`,
+            params
+        );
+        const totalCount = parseInt(countResult.rows[0].count);
+
+        // Data query
+        const dataResult = await pool.query(
+            `SELECT q.* ${baseQuery} ${orderClause} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+            [...params, parsedLimit, offset]
         );
 
-        const totalCount = await countQuestionsForUser(req.user.id, parsedTagIds);
-
         const questionsWithDetails = await Promise.all(
-            questions.map(async (q) => {
+            dataResult.rows.map(async (q) => {
                 const tags = await getTagsForQuestion(q.id);
                 return { ...q, tags };
             })
@@ -206,12 +216,7 @@ const getQuestionByIdHandler = async (req, res, next) => {
         const fillAnswer = question.type === 'fill_blank' ? await getFillAnswerForQuestion(question.id) : null;
 
         res.status(200).json({
-            question: {
-                ...question,
-                tags,
-                options,
-                fillAnswer
-            }
+            question: { ...question, tags, options, fillAnswer }
         });
     } catch (error) {
         next(error);
@@ -221,15 +226,8 @@ const getQuestionByIdHandler = async (req, res, next) => {
 const updateQuestionHandler = async (req, res, next) => {
     try {
         const {
-            type,
-            questionText,
-            questionImageUrl,
-            solutionText,
-            solutionImageUrl,
-            isStarred,
-            options,
-            fillAnswer,
-            tags
+            type, questionText, questionImageUrl, solutionText,
+            solutionImageUrl, isStarred, options, fillAnswer, tags
         } = req.body;
 
         const existingQuestion = await getQuestionById(req.params.id, req.user.id);
@@ -248,9 +246,7 @@ const updateQuestionHandler = async (req, res, next) => {
         if (type === 'mcq_single') {
             const correctOptions = options.filter(o => o.isCorrect);
             if (correctOptions.length !== 1) {
-                return res.status(400).json({
-                    message: 'Please select exactly 1 correct answer or change the question type.'
-                });
+                return res.status(400).json({ message: 'Please select exactly 1 correct answer or change the question type.' });
             }
         }
 
@@ -268,40 +264,26 @@ const updateQuestionHandler = async (req, res, next) => {
         }
 
         const updatedQuestion = await updateQuestion(
-            req.params.id,
-            req.user.id,
-            questionText,
-            questionImageUrl,
-            solutionText,
-            solutionImageUrl,
-            isStarred,
-            type
+            req.params.id, req.user.id, questionText, questionImageUrl,
+            solutionText, solutionImageUrl, isStarred, type
         );
 
-        // Update options
         await deleteOptionsForQuestion(req.params.id);
         if (type === 'mcq_single' || type === 'mcq_multiple') {
             for (let i = 0; i < options.length; i++) {
-                await createOption(
-                    req.params.id,
-                    options[i].optionText,
-                    options[i].optionImageUrl,
-                    options[i].isCorrect,
-                    i + 1
-                );
+                await createOption(req.params.id, options[i].optionText, options[i].optionImageUrl, options[i].isCorrect, i + 1);
             }
         }
 
-        // Update fill answer
         await deleteFillAnswerForQuestion(req.params.id);
         if (type === 'fill_blank') {
             await createFillAnswer(req.params.id, fillAnswer.trim());
         }
 
-        // Update tags
         await removeAllTagsFromQuestion(req.params.id);
         const autoTags = ['mcq single correct', 'mcq multiple correct', 'fill in the blank', 'starred'];
         const allTags = [...tags.filter(t => !autoTags.includes(t.toLowerCase().trim()))];
+
         const typeTagMap = {
             'mcq_single': 'mcq single correct',
             'mcq_multiple': 'mcq multiple correct',
@@ -323,12 +305,7 @@ const updateQuestionHandler = async (req, res, next) => {
 
         res.status(200).json({
             message: 'Question updated successfully.',
-            question: {
-                ...updatedQuestion,
-                tags: updatedTags,
-                options: updatedOptions,
-                fillAnswer: updatedFillAnswer
-            }
+            question: { ...updatedQuestion, tags: updatedTags, options: updatedOptions, fillAnswer: updatedFillAnswer }
         });
     } catch (error) {
         next(error);

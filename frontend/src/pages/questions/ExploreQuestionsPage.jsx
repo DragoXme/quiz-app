@@ -19,9 +19,10 @@ const ExploreQuestionsPage = () => {
     const [sortBy, setSortBy] = useState('');
     const [sortOrder, setSortOrder] = useState('ASC');
     const [showFilters, setShowFilters] = useState(false);
+    const [filterType, setFilterType] = useState('');
 
     useEffect(() => { fetchTags(); }, []);
-    useEffect(() => { fetchQuestions(); }, [currentPage, selectedTagIds, sortBy, sortOrder]);
+    useEffect(() => { fetchQuestions(); }, [currentPage, selectedTagIds, sortBy, sortOrder, filterType]);
 
     const fetchTags = async () => {
         try {
@@ -36,6 +37,7 @@ const ExploreQuestionsPage = () => {
             const params = new URLSearchParams();
             if (selectedTagIds.length > 0) params.append('tagIds', JSON.stringify(selectedTagIds));
             if (sortBy) { params.append('sortBy', sortBy); params.append('sortOrder', sortOrder); }
+            if (filterType) params.append('filterType', filterType);
             params.append('page', currentPage);
             params.append('limit', 10);
             const res = await API.get(`/questions?${params.toString()}`);
@@ -53,10 +55,16 @@ const ExploreQuestionsPage = () => {
         );
     };
 
+    const handleFilterType = (type) => {
+        setCurrentPage(1);
+        setFilterType(prev => prev === type ? '' : type);
+    };
+
     const handleClearFilters = () => {
         setSelectedTagIds([]);
         setSortBy('');
         setSortOrder('ASC');
+        setFilterType('');
         setCurrentPage(1);
     };
 
@@ -125,16 +133,55 @@ const ExploreQuestionsPage = () => {
                             </button>
                         </div>
 
+                        {/* Question Status Filter */}
+                        <div style={{ marginBottom: '14px' }}>
+                            <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                                Filter by Status:
+                            </p>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                <button
+                                    onClick={() => handleFilterType('struggling')}
+                                    style={{
+                                        padding: '5px 12px', borderRadius: '20px', border: 'none',
+                                        backgroundColor: filterType === 'struggling' ? 'var(--error)' : 'var(--error-light)',
+                                        color: filterType === 'struggling' ? '#fff' : 'var(--error)',
+                                        fontSize: '12px', fontWeight: '600', cursor: 'pointer'
+                                    }}
+                                >
+                                    🔴 Struggling
+                                </button>
+                                <button
+                                    onClick={() => handleFilterType('unattempted')}
+                                    style={{
+                                        padding: '5px 12px', borderRadius: '20px', border: 'none',
+                                        backgroundColor: filterType === 'unattempted' ? 'var(--warning)' : 'var(--warning-light)',
+                                        color: filterType === 'unattempted' ? '#fff' : 'var(--warning)',
+                                        fontSize: '12px', fontWeight: '600', cursor: 'pointer'
+                                    }}
+                                >
+                                    ⏭️ Unattempted
+                                </button>
+                            </div>
+                        </div>
+
                         {/* Tag Filter */}
                         <div style={{ marginBottom: '14px' }}>
                             <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                                 Filter by Tags:
                             </p>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                {availableTags.length === 0 && (
+                                {availableTags.filter(t =>
+                                    t.name !== 'mcq single correct' &&
+                                    t.name !== 'mcq multiple correct' &&
+                                    t.name !== 'fill in the blank'
+                                ).length === 0 && (
                                     <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No tags available yet.</p>
                                 )}
-                                {availableTags.map(tag => (
+                                {availableTags.filter(t =>
+                                    t.name !== 'mcq single correct' &&
+                                    t.name !== 'mcq multiple correct' &&
+                                    t.name !== 'fill in the blank'
+                                ).map(tag => (
                                     <button key={tag.id} onClick={() => handleTagFilter(tag.id)} style={{
                                         padding: '4px 10px', borderRadius: '20px', border: 'none',
                                         backgroundColor: selectedTagIds.includes(tag.id) ? 'var(--accent)' : 'var(--accent-light)',
@@ -170,9 +217,19 @@ const ExploreQuestionsPage = () => {
                 )}
 
                 {/* Active Filters */}
-                {(selectedTagIds.length > 0 || sortBy) && (
+                {(selectedTagIds.length > 0 || sortBy || filterType) && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px', alignItems: 'center' }}>
                         <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Active:</span>
+                        {filterType === 'struggling' && (
+                            <span style={{ padding: '2px 8px', backgroundColor: 'var(--error-light)', color: 'var(--error)', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>
+                                🔴 Struggling
+                            </span>
+                        )}
+                        {filterType === 'unattempted' && (
+                            <span style={{ padding: '2px 8px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>
+                                ⏭️ Unattempted
+                            </span>
+                        )}
                         {selectedTagIds.map(id => {
                             const tag = availableTags.find(t => t.id === id);
                             return tag ? (
@@ -246,6 +303,20 @@ const ExploreQuestionsPage = () => {
                                         {getQuestionTypeLabel(q.type)}
                                     </span>
                                     {q.is_starred && <span style={{ fontSize: '14px' }}>⭐</span>}
+                                    {q.correct_count <= q.wrong_count && q.wrong_count > 0 && (
+                                        <span style={{
+                                            padding: '2px 8px', borderRadius: '20px',
+                                            backgroundColor: 'var(--error-light)', color: 'var(--error)',
+                                            fontSize: '11px', fontWeight: '700'
+                                        }}>🔴 Struggling</span>
+                                    )}
+                                    {(q.wrong_count + q.correct_count) <= q.unattempted_count && q.unattempted_count > 0 && (
+                                        <span style={{
+                                            padding: '2px 8px', borderRadius: '20px',
+                                            backgroundColor: 'var(--warning-light)', color: 'var(--warning)',
+                                            fontSize: '11px', fontWeight: '700'
+                                        }}>⏭️ Unattempted</span>
+                                    )}
                                 </div>
 
                                 {q.question_text && (

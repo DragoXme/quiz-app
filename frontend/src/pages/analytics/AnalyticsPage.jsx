@@ -10,7 +10,6 @@ const AnalyticsPage = () => {
     const [analytics, setAnalytics] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [viewMode, setViewMode] = useState('graph');
 
     useEffect(() => { fetchAnalytics(); }, []);
 
@@ -34,41 +33,20 @@ const AnalyticsPage = () => {
         </div>
     );
 
-    const maxQuestions = Math.max(...analytics.map(a => parseInt(a.total_questions) || 0), 1);
-
     return (
         <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
             <Navbar />
             <div style={{ maxWidth: '900px', margin: '0 auto', padding: isMobile ? '16px' : '32px 24px' }}>
 
                 {/* Header */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <button onClick={() => navigate('/home')}
-                            style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                            ←
-                        </button>
-                        <div>
-                            <h1 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '800', color: 'var(--text-primary)' }}>
-                                Analytics
-                            </h1>
-                            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                Tag-wise performance
-                            </p>
-                        </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                        {['table', 'graph'].map(mode => (
-                            <button key={mode} onClick={() => setViewMode(mode)} style={{
-                                padding: isMobile ? '7px 12px' : '8px 16px',
-                                backgroundColor: viewMode === mode ? 'var(--accent)' : 'var(--bg-card)',
-                                color: viewMode === mode ? '#fff' : 'var(--text-secondary)',
-                                border: '1px solid var(--border)', borderRadius: '8px',
-                                fontSize: '12px', fontWeight: '600', cursor: 'pointer'
-                            }}>
-                                {mode === 'table' ? '📋' : '📊'}{!isMobile && ` ${mode.charAt(0).toUpperCase() + mode.slice(1)}`}
-                            </button>
-                        ))}
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px', gap: '12px' }}>
+                    <button onClick={() => navigate('/home')}
+                        style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                        ←
+                    </button>
+                    <div>
+                        <h1 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '800', color: 'var(--text-primary)' }}>Analytics</h1>
+                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>Tag-wise performance</p>
                     </div>
                 </div>
 
@@ -89,8 +67,7 @@ const AnalyticsPage = () => {
                             No data yet. Create questions and take tests to see analytics.
                         </p>
                     </div>
-                ) : viewMode === 'table' ? (
-                    /* TABLE VIEW */
+                ) : (
                     <div style={{
                         backgroundColor: 'var(--bg-card)', borderRadius: '12px',
                         boxShadow: `0 2px 8px var(--shadow)`,
@@ -102,7 +79,7 @@ const AnalyticsPage = () => {
                                     <tr style={{ backgroundColor: 'var(--table-header)' }}>
                                         {['Tag', 'Total Questions', 'Unattempted', 'Struggling', 'Status'].map(h => (
                                             <th key={h} style={{
-                                                padding: isMobile ? '10px 10px' : '14px 16px',
+                                                padding: isMobile ? '10px' : '14px 16px',
                                                 textAlign: 'left', fontWeight: '700',
                                                 color: 'var(--text-secondary)',
                                                 borderBottom: '2px solid var(--border)',
@@ -115,6 +92,7 @@ const AnalyticsPage = () => {
                                     {analytics.map((row, idx) => {
                                         const total = parseInt(row.total_questions) || 0;
                                         const struggling = parseInt(row.struggling_questions) || 0;
+                                        const unattempted = parseInt(row.unattempted_questions) || 0;
                                         const ratio = total > 0 ? struggling / total : 0;
                                         const statusColor = ratio === 0 ? 'var(--success)' : ratio < 0.3 ? 'var(--warning)' : 'var(--error)';
                                         const statusLabel = ratio === 0 ? '✅ Good' : ratio < 0.3 ? '⚠️ Fair' : '🔴 Poor';
@@ -132,9 +110,7 @@ const AnalyticsPage = () => {
                                                     }}>{row.tag_name}</span>
                                                 </td>
                                                 <td style={{ padding: isMobile ? '10px' : '14px 16px', fontWeight: '700', color: 'var(--text-primary)' }}>{total}</td>
-                                                <td style={{ padding: isMobile ? '10px' : '14px 16px', fontWeight: '700', color: 'var(--warning)' }}>
-                                                {parseInt(row.total_unattempted) || 0}
-                                                </td>
+                                                <td style={{ padding: isMobile ? '10px' : '14px 16px', fontWeight: '700', color: 'var(--warning)' }}>{unattempted}</td>
                                                 <td style={{ padding: isMobile ? '10px' : '14px 16px' }}>
                                                     <span style={{ fontWeight: '700', color: struggling > 0 ? 'var(--error)' : 'var(--success)' }}>
                                                         {struggling}
@@ -161,91 +137,8 @@ const AnalyticsPage = () => {
                         </div>
                         <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', backgroundColor: 'var(--bg-hover)' }}>
                             <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>
-                                * Struggling = correct ≤ wrong attempts
+                                * Struggling = correct attempts ≤ wrong attempts &nbsp;|&nbsp; * Unattempted = skipped more than attempted
                             </p>
-                        </div>
-                    </div>
-                ) : (
-                    /* GRAPH VIEW */
-                    <div style={{
-                        backgroundColor: 'var(--bg-card)', borderRadius: '12px',
-                        padding: isMobile ? '16px' : '28px',
-                        boxShadow: `0 2px 8px var(--shadow)`,
-                        border: '1px solid var(--border)'
-                    }}>
-                        <h3 style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '20px' }}>
-                            Questions per Tag
-                        </h3>
-                        {analytics.map((row, idx) => {
-                        const total = parseInt(row.total_questions) || 0;
-                        const struggling = parseInt(row.struggling_questions) || 0;
-                        const unattempted = parseInt(row.total_unattempted) || 0;
-                        const totalWidth = (total / maxQuestions) * 100;
-                        const strugglingWidth = total > 0 ? (struggling / total) * totalWidth : 0;
-                        const unattemptedWidth = total > 0 ? (unattempted / total) * totalWidth : 0;
-
-                        return (
-                            <div key={idx} style={{ marginBottom: '16px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', gap: '8px' }}>
-                                    <span style={{
-                                        fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)',
-                                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                        maxWidth: isMobile ? '120px' : '200px'
-                                    }}>
-                                        {row.tag_name}
-                                    </span>
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
-                                        <span style={{ fontSize: '11px', color: 'var(--accent-text)', fontWeight: '700' }}>{total} total</span>
-                                        {unattempted > 0 && (
-                                            <span style={{ fontSize: '11px', color: 'var(--warning)', fontWeight: '700' }}>{unattempted} ⏭️</span>
-                                        )}
-                                        {struggling > 0 && (
-                                            <span style={{ fontSize: '11px', color: 'var(--error)', fontWeight: '700' }}>{struggling} 🔴</span>
-                                        )}
-                                    </div>
-                                </div>
-                                <div style={{ height: '24px', backgroundColor: 'var(--bg-hover)', borderRadius: '6px', overflow: 'hidden', position: 'relative' }}>
-                                    {/* Total bar (blue) - full width background */}
-                                    <div style={{
-                                        position: 'absolute', left: 0, top: 0,
-                                        height: '100%', width: `${totalWidth}%`,
-                                        backgroundColor: 'var(--accent)',
-                                        borderRadius: '6px', transition: 'width 0.4s'
-                                    }} />
-                                    {/* Struggling bar (red) - starts from left */}
-                                    {struggling > 0 && (
-                                        <div style={{
-                                            position: 'absolute', left: 0, top: 0,
-                                            height: '100%', width: `${strugglingWidth}%`,
-                                            backgroundColor: 'var(--error)',
-                                            borderRadius: '6px', transition: 'width 0.4s'
-                                        }} />
-                                    )}
-                                    {/* Unattempted bar (orange) - starts after struggling */}
-                                    {unattempted > 0 && (
-                                        <div style={{
-                                            position: 'absolute', left: `${strugglingWidth}%`, top: 0,
-                                            height: '100%', width: `${unattemptedWidth}%`,
-                                            backgroundColor: 'var(--warning)',
-                                            transition: 'width 0.4s'
-                                        }} />
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })}
-
-                        <div style={{ display: 'flex', gap: '16px', marginTop: '16px', flexWrap: 'wrap' }}>
-                            {[
-                                { color: 'var(--accent)', label: 'Total Questions' },
-                                { color: 'var(--warning)', label: 'Unattempted' },
-                                { color: 'var(--error)', label: 'Struggling' }
-                            ].map(item => (
-                                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <div style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: item.color }} />
-                                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600' }}>{item.label}</span>
-                                </div>
-                            ))}
                         </div>
                     </div>
                 )}

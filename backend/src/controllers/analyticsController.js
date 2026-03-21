@@ -7,7 +7,7 @@ const getAnalytics = async (req, res, next) => {
                 t.name as tag_name,
                 COUNT(DISTINCT q.id) as total_questions,
                 SUM(CASE WHEN q.correct_count <= q.wrong_count THEN 1 ELSE 0 END) as struggling_questions,
-                    SUM(q.unattempted_count) as total_unattempted
+                SUM(CASE WHEN (q.wrong_count + q.correct_count) <= q.unattempted_count THEN 1 ELSE 0 END) as unattempted_questions
              FROM tags t
              JOIN question_tags qt ON t.id = qt.tag_id
              JOIN questions q ON qt.question_id = q.id

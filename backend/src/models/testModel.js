@@ -60,9 +60,17 @@ const completeContest = async (contestId) => {
     return result.rows[0];
 };
 
-const getQuestionsForTest = async (userId, tagIds, totalCount) => {
+const getQuestionsForTest = async (userId, tagIds, totalCount, filterType) => {
     const selectedIds = new Set();
     let finalQuestions = [];
+
+    // Build filter condition based on filterType
+    let filterCondition = '';
+    if (filterType === 'struggling') {
+        filterCondition = `AND q.correct_count <= q.wrong_count AND q.wrong_count > 0`;
+    } else if (filterType === 'unattempted') {
+        filterCondition = `AND (q.wrong_count + q.correct_count) <= q.unattempted_count AND q.unattempted_count > 0`;
+    }
 
     if (tagIds && tagIds.length > 0) {
         // Priority: questions matching ALL selected tags
@@ -70,6 +78,7 @@ const getQuestionsForTest = async (userId, tagIds, totalCount) => {
             `SELECT q.id, q.min_time, q.max_time
              FROM questions q
              WHERE q.user_id = $1
+             ${filterCondition}
              AND (
                  SELECT COUNT(DISTINCT qt.tag_id)
                  FROM question_tags qt
@@ -87,12 +96,13 @@ const getQuestionsForTest = async (userId, tagIds, totalCount) => {
             }
         }
 
-        // Secondary: questions matching at least 1 tag but not all
+        // Secondary: questions matching at least 1 tag
         if (finalQuestions.length < totalCount) {
             const secondaryResult = await pool.query(
                 `SELECT q.id, q.min_time, q.max_time
                  FROM questions q
                  WHERE q.user_id = $1
+                 ${filterCondition}
                  AND (
                      SELECT COUNT(DISTINCT qt.tag_id)
                      FROM question_tags qt
@@ -112,7 +122,7 @@ const getQuestionsForTest = async (userId, tagIds, totalCount) => {
         }
     }
 
-    // Fill remaining slots with random questions not already selected
+    // Fill remaining slots with random questions
     if (finalQuestions.length < totalCount) {
         const needed = totalCount - finalQuestions.length;
         const excludeIds = [...selectedIds];
@@ -123,6 +133,7 @@ const getQuestionsForTest = async (userId, tagIds, totalCount) => {
                 `SELECT q.id, q.min_time, q.max_time
                  FROM questions q
                  WHERE q.user_id = $1
+                 ${filterCondition}
                  AND q.id != ANY($2::uuid[])
                  ORDER BY RANDOM()
                  LIMIT $3`,
@@ -133,6 +144,7 @@ const getQuestionsForTest = async (userId, tagIds, totalCount) => {
                 `SELECT q.id, q.min_time, q.max_time
                  FROM questions q
                  WHERE q.user_id = $1
+                 ${filterCondition}
                  ORDER BY RANDOM()
                  LIMIT $2`,
                 [userId, needed]
