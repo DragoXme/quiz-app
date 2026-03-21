@@ -8,8 +8,8 @@
    LIGHT THEME
    ============================================ */
 :root[data-theme="light"] {
-    --bg-main: #E8EAFF;
-    --bg-card: rgba(255, 255, 255, 0.70);
+    --bg-main: transparent;          /* KEY FIX: let body gradient show through */
+    --bg-card: rgba(255, 255, 255, 0.68);
     --bg-hover: rgba(255, 255, 255, 0.88);
     --bg-input: rgba(255, 255, 255, 0.88);
     --text-primary: #1A1A2E;
@@ -29,7 +29,7 @@
     --error-light: rgba(239, 68, 68, 0.12);
     --warning: #F59E0B;
     --warning-light: rgba(245, 158, 11, 0.12);
-    --navbar-bg: rgba(220, 222, 255, 0.85);
+    --navbar-bg: rgba(220, 222, 255, 0.82);
     --navbar-border: rgba(99, 102, 241, 0.20);
     --input-border: rgba(99, 102, 241, 0.28);
     --tag-bg: rgba(99, 102, 241, 0.12);
@@ -38,8 +38,8 @@
     --table-alt: rgba(99, 102, 241, 0.03);
     --gradient-accent: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
     --gradient-card: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(236,238,255,0.7));
-    --glass-bg: rgba(255, 255, 255, 0.55);
-    --glass-border: rgba(255, 255, 255, 0.80);
+    --glass-bg: rgba(255, 255, 255, 0.52);
+    --glass-border: rgba(255, 255, 255, 0.75);
     --glass-blur: blur(16px);
 }
 
@@ -47,7 +47,7 @@
    DARK THEME
    ============================================ */
 :root[data-theme="dark"] {
-    --bg-main: #07070F;
+    --bg-main: transparent;          /* KEY FIX: let body gradient show through */
     --bg-card: rgba(16, 16, 32, 0.80);
     --bg-hover: rgba(26, 26, 50, 0.90);
     --bg-input: rgba(20, 20, 42, 0.90);
@@ -68,7 +68,7 @@
     --error-light: rgba(248, 113, 113, 0.13);
     --warning: #FBBF24;
     --warning-light: rgba(251, 191, 36, 0.13);
-    --navbar-bg: rgba(7, 7, 15, 0.90);
+    --navbar-bg: rgba(7, 7, 15, 0.88);
     --navbar-border: rgba(124, 127, 255, 0.20);
     --input-border: rgba(124, 127, 255, 0.28);
     --tag-bg: rgba(124, 127, 255, 0.16);
@@ -77,7 +77,7 @@
     --table-alt: rgba(124, 127, 255, 0.04);
     --gradient-accent: linear-gradient(135deg, #7C7FFF 0%, #A78BFA 100%);
     --gradient-card: linear-gradient(145deg, rgba(16,16,32,0.95), rgba(26,16,46,0.82));
-    --glass-bg: rgba(16, 16, 32, 0.62);
+    --glass-bg: rgba(16, 16, 32, 0.60);
     --glass-border: rgba(124, 127, 255, 0.24);
     --glass-blur: blur(16px);
 }
@@ -85,25 +85,6 @@
 /* ============================================
    ANIMATIONS
    ============================================ */
-@keyframes blobMove1 {
-    0%, 100% { transform: translate(0px, 0px)   scale(1);    }
-    33%       { transform: translate(40px, -30px) scale(1.08); }
-    66%       { transform: translate(-20px, 20px) scale(0.95); }
-}
-@keyframes blobMove2 {
-    0%, 100% { transform: translate(0px, 0px)    scale(1);    }
-    33%       { transform: translate(-50px, 30px) scale(1.05); }
-    66%       { transform: translate(25px, -25px) scale(1.10); }
-}
-@keyframes blobMove3 {
-    0%, 100% { transform: translate(0px, 0px)   scale(1);    }
-    33%       { transform: translate(30px, 40px) scale(0.92); }
-    66%       { transform: translate(-40px, -15px) scale(1.06); }
-}
-@keyframes blobMove4 {
-    0%, 100% { transform: translate(0px, 0px)    scale(1);    }
-    50%       { transform: translate(-30px, -40px) scale(1.08); }
-}
 @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeIn    { from { opacity: 0; } to { opacity: 1; } }
 @keyframes pulse     { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
@@ -123,72 +104,45 @@ body {
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
     min-height: 100%;
-    position: relative;
-    overflow-x: hidden;
     transition: color 0.3s ease;
 }
 
-/* The moving blobs live on a fixed pseudo-element BEHIND everything */
-body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-}
-
 /* ============================================
-   LIGHT MODE — vivid blob background
+   LIGHT MODE BACKGROUND — vivid static blobs
    ============================================ */
 :root[data-theme="light"] body {
-    background-color: #E0E2FF;
-}
-
-:root[data-theme="light"] body::before {
-    background:
-        /* violet — top-left */
-        radial-gradient(ellipse 55% 45% at 5%  5%,  #818cf8 0%, transparent 70%),
-        /* purple — top-right */
-        radial-gradient(ellipse 50% 42% at 95% 8%,  #a78bfa 0%, transparent 70%),
-        /* pink — bottom-right */
-        radial-gradient(ellipse 52% 44% at 92% 92%, #f472b6 0%, transparent 70%),
-        /* blue — bottom-left */
-        radial-gradient(ellipse 48% 40% at 8%  90%, #60a5fa 0%, transparent 70%),
-        /* teal — center */
-        radial-gradient(ellipse 38% 30% at 50% 50%, #34d399 0%, transparent 65%),
-        /* amber — mid right */
-        radial-gradient(ellipse 30% 25% at 80% 48%, #fbbf24 0%, transparent 65%),
-        /* rose — mid left */
-        radial-gradient(ellipse 28% 22% at 22% 52%, #fb7185 0%, transparent 65%);
-    opacity: 0.42;
-    animation: blobMove1 18s ease-in-out infinite alternate;
+    background-color: #C8CAFF;
+    background-image:
+        radial-gradient(ellipse 60% 50% at 5%   5%,  #818cf8 0%, transparent 65%),
+        radial-gradient(ellipse 55% 48% at 95%  8%,  #c084fc 0%, transparent 65%),
+        radial-gradient(ellipse 58% 50% at 95%  95%, #f472b6 0%, transparent 65%),
+        radial-gradient(ellipse 52% 46% at 5%   90%, #60a5fa 0%, transparent 65%),
+        radial-gradient(ellipse 40% 35% at 50%  50%, #6ee7b7 0%, transparent 60%),
+        radial-gradient(ellipse 32% 28% at 78%  45%, #fde68a 0%, transparent 60%),
+        radial-gradient(ellipse 30% 26% at 25%  55%, #fca5a5 0%, transparent 60%);
+    background-attachment: fixed;
 }
 
 /* ============================================
-   DARK MODE — glowing aurora blob background
+   DARK MODE BACKGROUND — vivid aurora blobs
    ============================================ */
 :root[data-theme="dark"] body {
-    background-color: #06060E;
+    background-color: #07070F;
+    background-image:
+        radial-gradient(ellipse 60% 50% at 5%   5%,  #4338ca 0%, transparent 65%),
+        radial-gradient(ellipse 55% 48% at 95%  8%,  #7c3aed 0%, transparent 65%),
+        radial-gradient(ellipse 58% 50% at 95%  95%, #be185d 0%, transparent 65%),
+        radial-gradient(ellipse 52% 46% at 5%   90%, #1d4ed8 0%, transparent 65%),
+        radial-gradient(ellipse 40% 35% at 50%  50%, #065f46 0%, transparent 60%),
+        radial-gradient(ellipse 32% 28% at 78%  45%, #92400e 0%, transparent 60%),
+        radial-gradient(ellipse 30% 26% at 25%  55%, #991b1b 0%, transparent 60%);
+    background-attachment: fixed;
 }
 
-:root[data-theme="dark"] body::before {
-    background:
-        /* indigo glow — top-left */
-        radial-gradient(ellipse 55% 45% at 5%  5%,  #4f46e5 0%, transparent 65%),
-        /* violet glow — top-right */
-        radial-gradient(ellipse 50% 42% at 95% 8%,  #7c3aed 0%, transparent 65%),
-        /* pink glow — bottom-right */
-        radial-gradient(ellipse 52% 44% at 92% 92%, #db2777 0%, transparent 65%),
-        /* blue glow — bottom-left */
-        radial-gradient(ellipse 48% 40% at 8%  90%, #2563eb 0%, transparent 65%),
-        /* teal glow — center */
-        radial-gradient(ellipse 38% 30% at 50% 50%, #059669 0%, transparent 60%),
-        /* amber glow — mid right */
-        radial-gradient(ellipse 30% 25% at 80% 48%, #d97706 0%, transparent 60%),
-        /* crimson — mid left */
-        radial-gradient(ellipse 28% 22% at 22% 52%, #dc2626 0%, transparent 60%);
-    opacity: 0.38;
-    animation: blobMove2 20s ease-in-out infinite alternate;
+/* #root must NOT have a background so the body shows through */
+#root {
+    min-height: 100vh;
+    background: transparent !important;
 }
 
 a { text-decoration: none; color: inherit; }
