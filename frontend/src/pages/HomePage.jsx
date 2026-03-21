@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import useAuth from '../hooks/useAuth';
@@ -9,8 +9,29 @@ const HomePage = () => {
     const [activeContests, setActiveContests] = useState([]);
     const [expanded, setExpanded] = useState(false);
     const [hoveredResume, setHoveredResume] = useState(null);
+    const timerRef = useRef(null);
 
     useEffect(() => {
+        loadContests();
+        // Tick every second to update time left
+        timerRef.current = setInterval(() => {
+            setActiveContests(prev => {
+                const updated = prev
+                    .map(c => ({ ...c, timeLeft: c.timeLeft - 1 }))
+                    .filter(c => c.timeLeft > 0);
+                // Sync expired ones out of localStorage
+                const saved = JSON.parse(localStorage.getItem('activeContests') || '[]');
+                const validIds = new Set(updated.map(c => c.contestId));
+                localStorage.setItem('activeContests', JSON.stringify(
+                    saved.filter(c => validIds.has(c.contestId))
+                ));
+                return updated;
+            });
+        }, 1000);
+        return () => clearInterval(timerRef.current);
+    }, []);
+
+    const loadContests = () => {
         const saved = JSON.parse(localStorage.getItem('activeContests') || '[]');
         const now = Date.now();
         const valid = saved
@@ -18,12 +39,19 @@ const HomePage = () => {
             .map(c => ({ ...c, timeLeft: c.totalTime - Math.floor((now - c.startedAt) / 1000) }));
         localStorage.setItem('activeContests', JSON.stringify(valid));
         setActiveContests(valid);
-    }, []);
+    };
 
     const formatTimeLeft = (seconds) => {
+        if (seconds <= 0) return '0s';
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+    };
+
+    const timerColor = (seconds) => {
+        if (seconds < 60) return 'var(--error)';
+        if (seconds < 300) return 'var(--warning)';
+        return 'var(--success)';
     };
 
     const cards = [
@@ -53,7 +81,6 @@ const HomePage = () => {
                 {/* Pending Tests */}
                 {activeContests.length > 0 && (
                     <div style={{ marginBottom: '28px' }}>
-                        {/* Header row */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                             <p style={{ fontSize: '12px', fontWeight: '700', color: 'var(--warning)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <span className="pulse">⚡</span>
@@ -79,26 +106,21 @@ const HomePage = () => {
                             )}
                         </div>
 
-                        {/* Contest cards */}
                         {visibleContests.map((c, idx) => (
-                            <div
-                                key={c.contestId}
-                                className={idx > 0 ? 'slide-down' : ''}
-                                style={{
-                                    background: 'var(--warning-light)',
-                                    border: '1.5px solid var(--warning)',
-                                    borderRadius: '14px', padding: '14px 18px',
-                                    marginBottom: '8px', display: 'flex',
-                                    alignItems: 'center', justifyContent: 'space-between',
-                                    flexWrap: 'wrap', gap: '10px'
-                                }}
-                            >
+                            <div key={c.contestId} className={idx > 0 ? 'slide-down' : ''} style={{
+                                background: 'var(--warning-light)',
+                                border: '1.5px solid var(--warning)',
+                                borderRadius: '14px', padding: '14px 18px',
+                                marginBottom: '8px', display: 'flex',
+                                alignItems: 'center', justifyContent: 'space-between',
+                                flexWrap: 'wrap', gap: '10px'
+                            }}>
                                 <div>
                                     <p style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>
                                         Test #{activeContests.length - idx}
                                     </p>
-                                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                        ⏱ ~{formatTimeLeft(c.timeLeft)} remaining
+                                    <p style={{ fontSize: '13px', fontWeight: '700', color: timerColor(c.timeLeft), marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
+                                        ⏱ {formatTimeLeft(c.timeLeft)}
                                     </p>
                                 </div>
                                 <button
@@ -113,7 +135,7 @@ const HomePage = () => {
                                         color: '#fff', border: 'none', borderRadius: '10px',
                                         fontSize: '13px', fontWeight: '700', cursor: 'pointer',
                                         transform: hoveredResume === c.contestId ? 'translateY(-2px) scale(1.03)' : 'translateY(0) scale(1)',
-                                        boxShadow: hoveredResume === c.contestId ? '0 6px 18px rgba(245,158,11,0.4)' : '0 2px 8px rgba(0,0,0,0.1)',
+                                        boxShadow: hoveredResume === c.contestId ? '0 6px 18px rgba(245,158,11,0.45)' : '0 2px 8px rgba(0,0,0,0.12)',
                                         transition: 'all 0.2s ease'
                                     }}
                                 >
@@ -132,12 +154,13 @@ const HomePage = () => {
                             WebkitBackdropFilter: 'var(--glass-blur)',
                             borderRadius: '20px', padding: '28px 24px', cursor: 'pointer',
                             boxShadow: '0 4px 20px var(--shadow)', border: '1px solid var(--glass-border)',
-                            transition: 'all 0.25s ease', textAlign: 'center', position: 'relative', overflow: 'hidden'
+                            transition: 'all 0.25s ease', textAlign: 'center',
+                            position: 'relative', overflow: 'hidden'
                         }}
                             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = '0 16px 40px var(--shadow-md)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
                             onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px var(--shadow)'; e.currentTarget.style.borderColor = 'var(--glass-border)'; }}
                         >
-                            <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', borderRadius: '50%', background: card.gradient, opacity: 0.12 }} />
+                            <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', borderRadius: '50%', background: card.gradient, opacity: 0.15 }} />
                             <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: card.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', margin: '0 auto 16px', boxShadow: '0 4px 14px rgba(0,0,0,0.18)' }}>
                                 {card.icon}
                             </div>
