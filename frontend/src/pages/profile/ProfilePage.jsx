@@ -124,9 +124,7 @@ const ProfilePage = () => {
         }
         setDeletingAccount(true);
         try {
-            await API.delete('/profile/delete-account', {
-                data: { password: deletePassword }
-            });
+            await API.post('/profile/delete-account', { password: deletePassword });
             logout();
             navigate('/login');
         } catch (err) {

@@ -11,6 +11,6 @@ const {
 router.get('/', verifyToken, getProfile);
 router.put('/update', verifyToken, updateProfile);
 router.put('/update-password', verifyToken, updatePassword);
-router.delete('/delete-account', verifyToken, deleteAccount);
+router.post('/delete-account', verifyToken, deleteAccount);
 
 module.exports = router;
