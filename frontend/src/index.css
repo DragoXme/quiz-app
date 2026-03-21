@@ -8,7 +8,7 @@
    LIGHT THEME
    ============================================ */
 :root[data-theme="light"] {
-    --bg-main: transparent;          /* KEY FIX: let body gradient show through */
+    --bg-main: transparent;
     --bg-card: rgba(255, 255, 255, 0.68);
     --bg-hover: rgba(255, 255, 255, 0.88);
     --bg-input: rgba(255, 255, 255, 0.88);
@@ -47,7 +47,7 @@
    DARK THEME
    ============================================ */
 :root[data-theme="dark"] {
-    --bg-main: transparent;          /* KEY FIX: let body gradient show through */
+    --bg-main: transparent;
     --bg-card: rgba(16, 16, 32, 0.80);
     --bg-hover: rgba(26, 26, 50, 0.90);
     --bg-input: rgba(20, 20, 42, 0.90);
@@ -108,38 +108,28 @@ body {
 }
 
 /* ============================================
-   LIGHT MODE BACKGROUND — vivid static blobs
+   LIGHT MODE — indigo top-left, violet bottom-right
    ============================================ */
 :root[data-theme="light"] body {
-    background-color: #C8CAFF;
+    background-color: #E4E6FF;
     background-image:
-        radial-gradient(ellipse 60% 50% at 5%   5%,  #818cf8 0%, transparent 65%),
-        radial-gradient(ellipse 55% 48% at 95%  8%,  #c084fc 0%, transparent 65%),
-        radial-gradient(ellipse 58% 50% at 95%  95%, #f472b6 0%, transparent 65%),
-        radial-gradient(ellipse 52% 46% at 5%   90%, #60a5fa 0%, transparent 65%),
-        radial-gradient(ellipse 40% 35% at 50%  50%, #6ee7b7 0%, transparent 60%),
-        radial-gradient(ellipse 32% 28% at 78%  45%, #fde68a 0%, transparent 60%),
-        radial-gradient(ellipse 30% 26% at 25%  55%, #fca5a5 0%, transparent 60%);
+        radial-gradient(ellipse 70% 60% at 0%   0%,   #818cf8 0%, transparent 70%),
+        radial-gradient(ellipse 65% 55% at 100% 100%, #c084fc 0%, transparent 70%);
     background-attachment: fixed;
 }
 
 /* ============================================
-   DARK MODE BACKGROUND — vivid aurora blobs
+   DARK MODE — deep indigo top-left, deep violet bottom-right
    ============================================ */
 :root[data-theme="dark"] body {
     background-color: #07070F;
     background-image:
-        radial-gradient(ellipse 60% 50% at 5%   5%,  #4338ca 0%, transparent 65%),
-        radial-gradient(ellipse 55% 48% at 95%  8%,  #7c3aed 0%, transparent 65%),
-        radial-gradient(ellipse 58% 50% at 95%  95%, #be185d 0%, transparent 65%),
-        radial-gradient(ellipse 52% 46% at 5%   90%, #1d4ed8 0%, transparent 65%),
-        radial-gradient(ellipse 40% 35% at 50%  50%, #065f46 0%, transparent 60%),
-        radial-gradient(ellipse 32% 28% at 78%  45%, #92400e 0%, transparent 60%),
-        radial-gradient(ellipse 30% 26% at 25%  55%, #991b1b 0%, transparent 60%);
+        radial-gradient(ellipse 70% 60% at 0%   0%,   #3730a3 0%, transparent 70%),
+        radial-gradient(ellipse 65% 55% at 100% 100%, #6d28d9 0%, transparent 70%);
     background-attachment: fixed;
 }
 
-/* #root must NOT have a background so the body shows through */
+/* #root must be transparent so body gradient shows through */
 #root {
     min-height: 100vh;
     background: transparent !important;
