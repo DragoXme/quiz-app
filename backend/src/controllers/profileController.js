@@ -59,8 +59,6 @@ const updatePassword = async (req, res, next) => {
             return res.status(400).json({ message: 'Password must be at least 6 characters.' });
         }
 
-        const { findUserById: getUserWithHash } = require('../models/userModel');
-        const pool = require('../config/db');
         const userResult = await pool.query(
             `SELECT * FROM users WHERE id = $1`,
             [req.user.id]
