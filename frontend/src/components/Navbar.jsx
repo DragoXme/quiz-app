@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import { ThemeContext } from '../context/ThemeContext';
@@ -6,14 +6,29 @@ import { ThemeContext } from '../context/ThemeContext';
 const Navbar = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
-    const { theme, preference, setPreference } = useContext(ThemeContext);
+    const { preference, setPreference } = useContext(ThemeContext);
     const [showDropdown, setShowDropdown] = useState(false);
     const [showThemeMenu, setShowThemeMenu] = useState(false);
+    const dropdownRef = useRef(null);
 
     const handleLogout = () => {
         logout();
         navigate('/login');
     };
+
+    // Fix 2: close on any click outside the dropdown
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setShowDropdown(false);
+                setShowThemeMenu(false);
+            }
+        };
+        if (showDropdown) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showDropdown]);
 
     const themeOptions = [
         { key: 'light',  label: 'Light',  icon: '☀️' },
@@ -50,9 +65,9 @@ const Navbar = () => {
             </div>
 
             {/* Profile dropdown */}
-            <div style={{ position: 'relative' }}>
+            <div ref={dropdownRef} style={{ position: 'relative' }}>
                 <button
-                    onClick={() => { setShowDropdown(!showDropdown); setShowThemeMenu(false); }}
+                    onClick={() => { setShowDropdown(p => !p); setShowThemeMenu(false); }}
                     style={{
                         display: 'flex', alignItems: 'center', gap: '8px',
                         background: 'var(--accent-light)', border: '1px solid var(--border)',
@@ -74,66 +89,65 @@ const Navbar = () => {
                 </button>
 
                 {showDropdown && (
-                    <>
-                        {/* Backdrop */}
-                        <div style={{ position: 'fixed', inset: 0, zIndex: 99 }}
-                            onClick={() => { setShowDropdown(false); setShowThemeMenu(false); }} />
-
+                    <div style={{
+                        position: 'absolute', top: '52px', right: 0,
+                        backgroundColor: 'var(--dropdown-bg)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '16px',
+                        boxShadow: '0 8px 32px var(--shadow-md)',
+                        minWidth: '220px',
+                        zIndex: 200,
+                        overflow: 'hidden'
+                    }}>
+                        {/* Fix 1: sliding panel container */}
                         <div style={{
-                            position: 'absolute', top: '52px', right: 0,
-                            backgroundColor: 'var(--dropdown-bg)',
-                            border: '1px solid var(--border)',
-                            borderRadius: '16px',
-                            boxShadow: '0 8px 32px var(--shadow-md)',
-                            minWidth: '220px',
-                            zIndex: 100,
-                            overflow: 'hidden'
+                            display: 'flex',
+                            width: '440px', // two panels side by side
+                            transform: showThemeMenu ? 'translateX(-220px)' : 'translateX(0)',
+                            transition: 'transform 0.25s ease'
                         }}>
-                            {/* User info header */}
-                            <div style={{
-                                padding: '14px 16px',
-                                borderBottom: '1px solid var(--border-light)',
-                                background: 'var(--gradient-card)'
-                            }}>
-                                <p style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                                    {user?.username}
-                                </p>
-                                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                    {user?.email}
-                                </p>
-                            </div>
 
-                            {/* Nav items */}
-                            {[
-                                { label: '👤 View Profile', path: '/profile' },
-                                { label: '🏆 Contest Summaries', path: '/contests' },
-                                { label: '📊 Analytics', path: '/analytics' }
-                            ].map(item => (
-                                <div key={item.path}
-                                    onClick={() => { navigate(item.path); setShowDropdown(false); }}
-                                    style={{
-                                        padding: '11px 16px', cursor: 'pointer',
-                                        fontSize: '14px', color: 'var(--text-primary)',
-                                        display: 'flex', alignItems: 'center', gap: '10px',
-                                        borderBottom: '1px solid var(--border-light)',
-                                        transition: 'background-color 0.15s'
-                                    }}
-                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
-                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                                >
-                                    {item.label}
+                            {/* ── LEFT PANEL: main menu ── */}
+                            <div style={{ width: '220px', flexShrink: 0 }}>
+                                {/* User info header */}
+                                <div style={{
+                                    padding: '14px 16px',
+                                    borderBottom: '1px solid var(--border-light)',
+                                    background: 'var(--gradient-card)'
+                                }}>
+                                    <p style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>{user?.username}</p>
+                                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{user?.email}</p>
                                 </div>
-                            ))}
 
-                            {/* Theme option — expands into submenu */}
-                            {!showThemeMenu ? (
+                                {/* Nav items */}
+                                {[
+                                    { label: '👤 View Profile', path: '/profile' },
+                                    { label: '🏆 Contest Summaries', path: '/contests' },
+                                    { label: '📊 Analytics', path: '/analytics' }
+                                ].map(item => (
+                                    <div key={item.path}
+                                        onClick={() => { navigate(item.path); setShowDropdown(false); setShowThemeMenu(false); }}
+                                        style={{
+                                            padding: '11px 16px', cursor: 'pointer',
+                                            fontSize: '14px', color: 'var(--text-primary)',
+                                            display: 'flex', alignItems: 'center', gap: '10px',
+                                            borderBottom: '1px solid var(--border-light)',
+                                            transition: 'background-color 0.15s'
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
+                                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    >
+                                        {item.label}
+                                    </div>
+                                ))}
+
+                                {/* Theme row */}
                                 <div
-                                    onClick={(e) => { e.stopPropagation(); setShowThemeMenu(true); }}
+                                    onClick={() => setShowThemeMenu(true)}
                                     style={{
                                         padding: '11px 16px', cursor: 'pointer',
                                         fontSize: '14px', color: 'var(--text-primary)',
-                                        display: 'flex', alignItems: 'center',
-                                        justifyContent: 'space-between',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                         borderBottom: '1px solid var(--border-light)',
                                         transition: 'background-color 0.15s'
                                     }}
@@ -145,73 +159,71 @@ const Navbar = () => {
                                     </span>
                                     <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>›</span>
                                 </div>
-                            ) : (
-                                /* Theme submenu — replaces the single row */
-                                <div style={{ borderBottom: '1px solid var(--border-light)' }}>
-                                    {/* Back button */}
+
+                                {/* Logout */}
+                                <div onClick={handleLogout} style={{
+                                    padding: '11px 16px', cursor: 'pointer',
+                                    fontSize: '14px', color: 'var(--error)',
+                                    display: 'flex', alignItems: 'center', gap: '10px',
+                                    transition: 'background-color 0.15s'
+                                }}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--error-light)'}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                                >
+                                    🚪 Logout
+                                </div>
+                            </div>
+
+                            {/* ── RIGHT PANEL: theme menu ── */}
+                            <div style={{ width: '220px', flexShrink: 0 }}>
+                                {/* Back button */}
+                                <div
+                                    onClick={() => setShowThemeMenu(false)}
+                                    style={{
+                                        padding: '11px 16px', cursor: 'pointer',
+                                        fontSize: '13px', color: 'var(--text-muted)',
+                                        display: 'flex', alignItems: 'center', gap: '8px',
+                                        borderBottom: '1px solid var(--border-light)',
+                                        fontWeight: '600',
+                                        transition: 'background-color 0.15s'
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                                >
+                                    ‹ Theme
+                                </div>
+
+                                {themeOptions.map(opt => (
                                     <div
-                                        onClick={(e) => { e.stopPropagation(); setShowThemeMenu(false); }}
+                                        key={opt.key}
+                                        onClick={() => { setPreference(opt.key); setShowThemeMenu(false); }}
                                         style={{
-                                            padding: '10px 16px', cursor: 'pointer',
-                                            fontSize: '12px', color: 'var(--text-muted)',
-                                            display: 'flex', alignItems: 'center', gap: '6px',
+                                            padding: '11px 16px', cursor: 'pointer',
+                                            fontSize: '14px',
+                                            color: preference === opt.key ? 'var(--accent-text)' : 'var(--text-primary)',
+                                            backgroundColor: preference === opt.key ? 'var(--accent-light)' : 'transparent',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                             borderBottom: '1px solid var(--border-light)',
                                             transition: 'background-color 0.15s'
                                         }}
-                                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
-                                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        onMouseEnter={e => {
+                                            if (preference !== opt.key) e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                                        }}
+                                        onMouseLeave={e => {
+                                            e.currentTarget.style.backgroundColor = preference === opt.key ? 'var(--accent-light)' : 'transparent';
+                                        }}
                                     >
-                                        ‹ Theme
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            {opt.icon} {opt.label}
+                                        </span>
+                                        {preference === opt.key && (
+                                            <span style={{ fontSize: '13px', color: 'var(--accent)' }}>✓</span>
+                                        )}
                                     </div>
-                                    {themeOptions.map(opt => (
-                                        <div
-                                            key={opt.key}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setPreference(opt.key);
-                                                setShowThemeMenu(false);
-                                            }}
-                                            style={{
-                                                padding: '11px 16px', cursor: 'pointer',
-                                                fontSize: '14px',
-                                                color: preference === opt.key ? 'var(--accent-text)' : 'var(--text-primary)',
-                                                backgroundColor: preference === opt.key ? 'var(--accent-light)' : 'transparent',
-                                                display: 'flex', alignItems: 'center',
-                                                justifyContent: 'space-between',
-                                                transition: 'background-color 0.15s'
-                                            }}
-                                            onMouseEnter={e => {
-                                                if (preference !== opt.key) e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                                            }}
-                                            onMouseLeave={e => {
-                                                e.currentTarget.style.backgroundColor = preference === opt.key ? 'var(--accent-light)' : 'transparent';
-                                            }}
-                                        >
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                {opt.icon} {opt.label}
-                                            </span>
-                                            {preference === opt.key && (
-                                                <span style={{ fontSize: '13px', color: 'var(--accent)' }}>✓</span>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* Logout */}
-                            <div onClick={handleLogout} style={{
-                                padding: '11px 16px', cursor: 'pointer',
-                                fontSize: '14px', color: 'var(--error)',
-                                display: 'flex', alignItems: 'center', gap: '10px',
-                                transition: 'background-color 0.15s'
-                            }}
-                                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--error-light)'}
-                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                            >
-                                🚪 Logout
+                                ))}
                             </div>
                         </div>
-                    </>
+                    </div>
                 )}
             </div>
         </nav>

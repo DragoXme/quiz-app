@@ -5,6 +5,13 @@ import ConfirmModal from '../../components/ConfirmModal';
 import { formatTimerDisplay } from '../../utils/helpers';
 import useWindowSize from '../../hooks/useWindowSize';
 
+const IMAGE_SIZES = [
+    { key: 'small',    label: 'S',        maxWidth: '80px'  },
+    { key: 'medium',   label: 'M',        maxWidth: '160px' },
+    { key: 'large',    label: 'L',        maxWidth: '280px' },
+    { key: 'original', label: 'Original', maxWidth: '100%'  },
+];
+
 const TestPage = () => {
     const { contestId } = useParams();
     const navigate = useNavigate();
@@ -22,7 +29,8 @@ const TestPage = () => {
     const [error, setError] = useState('');
     const [totalTimeLeft, setTotalTimeLeft] = useState(0);
     const [questionTimes, setQuestionTimes] = useState({});
-    const [leaveHovered, setLeaveHovered] = useState(false); // state-based hover fix
+    const [leaveHovered, setLeaveHovered] = useState(false);
+    const [optionImageSize, setOptionImageSize] = useState('medium');
     const questionStartTime = useRef(null);
     const totalTimerRef = useRef(null);
 
@@ -172,6 +180,8 @@ const TestPage = () => {
         answers[q.contestQuestionId] !== null && answers[q.contestQuestionId] !== undefined && answers[q.contestQuestionId] !== ''
     ).length;
     const timerColor = totalTimeLeft < 60 ? 'var(--error)' : totalTimeLeft < 300 ? 'var(--warning)' : 'var(--success)';
+    const currentSize = IMAGE_SIZES.find(s => s.key === optionImageSize) || IMAGE_SIZES[1];
+    const currentQHasOptionImages = currentQ?.options?.some(o => o.option_image_url);
 
     const optionStyle = (isSelected) => ({
         padding: isMobile ? '12px 14px' : '14px 18px',
@@ -179,8 +189,35 @@ const TestPage = () => {
         border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
         backgroundColor: isSelected ? 'var(--accent-light)' : 'var(--bg-hover)',
         cursor: 'pointer', transition: 'all 0.15s',
-        display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px'
+        display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '8px'
     });
+
+    // Renders one option row — text + image (never shows "(Image)" placeholder)
+    const OptionContent = ({ opt, idx, isSelected }) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+            {/* Label row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: isSelected ? '600' : '400' }}>
+                    {String.fromCharCode(65 + idx)}.{opt.option_text ? ` ${opt.option_text}` : ''}
+                </span>
+            </div>
+            {/* Actual image — sized, never cropped */}
+            {opt.option_image_url && (
+                <img
+                    src={opt.option_image_url}
+                    alt={`Option ${String.fromCharCode(65 + idx)}`}
+                    style={{
+                        maxWidth: currentSize.maxWidth,
+                        width: '100%',
+                        height: 'auto',
+                        borderRadius: '6px',
+                        display: 'block',
+                        border: '1px solid var(--border)'
+                    }}
+                />
+            )}
+        </div>
+    );
 
     const NavigatorPanel = () => (
         <div style={{ background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', borderRadius: '14px', padding: '20px', boxShadow: '0 4px 20px var(--shadow)', border: '1px solid var(--glass-border)' }}>
@@ -207,8 +244,6 @@ const TestPage = () => {
                     </div>
                 ))}
             </div>
-
-            {/* Leave Test button — uses state-based hover so timer re-renders don't reset it */}
             {!isMobile && (
                 <button
                     onClick={() => setShowAbandonModal(true)}
@@ -285,6 +320,8 @@ const TestPage = () => {
             <div style={{ maxWidth: '1000px', margin: '0 auto', padding: isMobile ? '16px' : '24px', display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', borderRadius: '16px', padding: isMobile ? '16px' : '28px', boxShadow: '0 4px 20px var(--shadow)', border: '1px solid var(--glass-border)' }}>
+
+                        {/* Q header + type badge */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                             <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>Q {currentIndex + 1} of {questions.length}</span>
                             <span style={{ padding: '4px 10px', borderRadius: '20px', backgroundColor: 'var(--accent-light)', color: 'var(--accent-text)', fontSize: '11px', fontWeight: '700' }}>
@@ -292,6 +329,7 @@ const TestPage = () => {
                             </span>
                         </div>
 
+                        {/* Question text / image */}
                         {currentQ?.questionText && (
                             <p style={{ fontSize: isMobile ? '15px' : '16px', color: 'var(--text-primary)', lineHeight: '1.7', marginBottom: '20px', fontWeight: '500' }}>
                                 {currentQ.questionText}
@@ -301,39 +339,64 @@ const TestPage = () => {
                             <img src={currentQ.questionImageUrl} alt="Question" style={{ maxWidth: '100%', borderRadius: '8px', marginBottom: '20px', display: 'block' }} />
                         )}
 
-                        {currentQ?.type === 'mcq_single' && (
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                {currentQ.options?.map((opt, idx) => (
-                                    <div key={opt.id} onClick={() => handleAnswerChange(currentQ.contestQuestionId, opt.id)} style={optionStyle(selectedAnswer === opt.id)}>
-                                        <div style={{ width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0, border: `2px solid ${selectedAnswer === opt.id ? 'var(--accent)' : 'var(--border)'}`, backgroundColor: selectedAnswer === opt.id ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            {selectedAnswer === opt.id && <div style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#fff' }} />}
-                                        </div>
-                                        <span style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: selectedAnswer === opt.id ? '600' : '400' }}>
-                                            {String.fromCharCode(65 + idx)}. {opt.option_text || '(Image)'}
-                                        </span>
-                                        {opt.option_image_url && <img src={opt.option_image_url} alt="" style={{ maxHeight: '60px', borderRadius: '4px' }} />}
-                                    </div>
+                        {/* Image size picker — shown only when current question has image options */}
+                        {currentQHasOptionImages && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>Option image size:</span>
+                                {IMAGE_SIZES.map(s => (
+                                    <button
+                                        key={s.key}
+                                        onClick={() => setOptionImageSize(s.key)}
+                                        style={{
+                                            padding: '3px 9px', borderRadius: '6px', border: 'none',
+                                            background: optionImageSize === s.key ? 'var(--gradient-accent)' : 'var(--accent-light)',
+                                            color: optionImageSize === s.key ? '#fff' : 'var(--accent-text)',
+                                            fontSize: '11px', fontWeight: '700', cursor: 'pointer',
+                                            transition: 'all 0.15s'
+                                        }}
+                                    >
+                                        {s.label}
+                                    </button>
                                 ))}
                             </div>
                         )}
 
+                        {/* MCQ Single */}
+                        {currentQ?.type === 'mcq_single' && (
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                {currentQ.options?.map((opt, idx) => {
+                                    const isSelected = selectedAnswer === opt.id;
+                                    return (
+                                        <div key={opt.id} onClick={() => handleAnswerChange(currentQ.contestQuestionId, opt.id)} style={optionStyle(isSelected)}>
+                                            <div style={{ width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0, marginTop: '2px', border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`, backgroundColor: isSelected ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {isSelected && <div style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#fff' }} />}
+                                            </div>
+                                            <OptionContent opt={opt} idx={idx} isSelected={isSelected} />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {/* MCQ Multiple */}
                         {currentQ?.type === 'mcq_multiple' && (
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>Select all correct answers</p>
-                                {currentQ.options?.map((opt, idx) => (
-                                    <div key={opt.id} onClick={() => handleMultipleAnswerChange(currentQ.contestQuestionId, opt.id)} style={optionStyle(selectedMultiple.includes(opt.id))}>
-                                        <div style={{ width: '20px', height: '20px', borderRadius: '4px', flexShrink: 0, border: `2px solid ${selectedMultiple.includes(opt.id) ? 'var(--accent)' : 'var(--border)'}`, backgroundColor: selectedMultiple.includes(opt.id) ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            {selectedMultiple.includes(opt.id) && <span style={{ color: '#fff', fontSize: '11px', fontWeight: '700' }}>✓</span>}
+                                {currentQ.options?.map((opt, idx) => {
+                                    const isSelected = selectedMultiple.includes(opt.id);
+                                    return (
+                                        <div key={opt.id} onClick={() => handleMultipleAnswerChange(currentQ.contestQuestionId, opt.id)} style={optionStyle(isSelected)}>
+                                            <div style={{ width: '20px', height: '20px', borderRadius: '4px', flexShrink: 0, marginTop: '2px', border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`, backgroundColor: isSelected ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {isSelected && <span style={{ color: '#fff', fontSize: '11px', fontWeight: '700' }}>✓</span>}
+                                            </div>
+                                            <OptionContent opt={opt} idx={idx} isSelected={isSelected} />
                                         </div>
-                                        <span style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: selectedMultiple.includes(opt.id) ? '600' : '400' }}>
-                                            {String.fromCharCode(65 + idx)}. {opt.option_text || '(Image)'}
-                                        </span>
-                                        {opt.option_image_url && <img src={opt.option_image_url} alt="" style={{ maxHeight: '60px', borderRadius: '4px' }} />}
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
 
+                        {/* Fill blank */}
                         {currentQ?.type === 'fill_blank' && (
                             <div>
                                 <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Type your answer below:</p>
@@ -368,7 +431,6 @@ const TestPage = () => {
                 cancelText="Continue Test"
                 confirmColor="var(--accent)"
             />
-
             <ConfirmModal
                 isOpen={showAbandonModal}
                 title="⚠️ Leave Test"
