@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../../api/axios';
 import Navbar from '../../components/Navbar';
+import Pagination from '../../components/Pagination';
 import { formatDate } from '../../utils/helpers';
 import useWindowSize from '../../hooks/useWindowSize';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -15,13 +16,19 @@ const ContestSummariesPage = () => {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [selectedContestId, setSelectedContestId] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
 
-    useEffect(() => { fetchSummaries(); }, []);
+    useEffect(() => { fetchSummaries(); }, [currentPage]);
 
     const fetchSummaries = async () => {
+        setLoading(true);
         try {
-            const res = await API.get('/contests');
+            const res = await API.get(`/contests?page=${currentPage}&limit=10`);
             setSummaries(res.data.summaries);
+            setTotalPages(res.data.totalPages);
+            setTotalCount(res.data.totalCount);
         } catch (err) {
             setError('Failed to load contest summaries.');
         } finally {
@@ -39,9 +46,14 @@ const ContestSummariesPage = () => {
         setDeleting(true);
         try {
             await API.delete(`/contests/${selectedContestId}`);
-            setSummaries(prev => prev.filter(s => s.id !== selectedContestId));
             setDeleteModalOpen(false);
             setSelectedContestId(null);
+            // Refresh current page, go to prev page if last item deleted
+            if (summaries.length === 1 && currentPage > 1) {
+                setCurrentPage(prev => prev - 1);
+            } else {
+                fetchSummaries();
+            }
         } catch (err) {
             setError('Failed to delete contest.');
         } finally {
@@ -83,7 +95,7 @@ const ContestSummariesPage = () => {
                             Contest Summaries
                         </h1>
                         <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                            {summaries.length} contest{summaries.length !== 1 ? 's' : ''} completed
+                            {totalCount} contest{totalCount !== 1 ? 's' : ''} completed
                         </p>
                     </div>
                 </div>
@@ -94,7 +106,7 @@ const ContestSummariesPage = () => {
                     </div>
                 )}
 
-                {summaries.length === 0 ? (
+                {summaries.length === 0 && currentPage === 1 ? (
                     <div style={{ ...sectionStyle, textAlign: 'center', padding: '48px 24px' }}>
                         <p style={{ fontSize: '40px', marginBottom: '12px' }}>🏆</p>
                         <p style={{ color: 'var(--text-muted)', fontSize: '15px', marginBottom: '16px' }}>
@@ -109,97 +121,105 @@ const ContestSummariesPage = () => {
                         </button>
                     </div>
                 ) : (
-                    summaries.map((summary, idx) => {
-                        const total = parseInt(summary.question_count) || 0;
-                        const correct = parseInt(summary.correct_count) || 0;
-                        const wrong = parseInt(summary.wrong_count) || 0;
-                        const unattempted = parseInt(summary.unattempted_count) || 0;
-                        const scorePercent = total > 0 ? Math.round((correct / total) * 100) : 0;
-                        const scoreColor = scorePercent >= 70 ? 'var(--success)' : scorePercent >= 40 ? 'var(--warning)' : 'var(--error)';
+                    <>
+                        {summaries.map((summary, idx) => {
+                            const total = parseInt(summary.question_count) || 0;
+                            const correct = parseInt(summary.correct_count) || 0;
+                            const wrong = parseInt(summary.wrong_count) || 0;
+                            const unattempted = parseInt(summary.unattempted_count) || 0;
+                            const scorePercent = total > 0 ? Math.round((correct / total) * 100) : 0;
+                            const scoreColor = scorePercent >= 70 ? 'var(--success)' : scorePercent >= 40 ? 'var(--warning)' : 'var(--error)';
+                            const contestNumber = totalCount - ((currentPage - 1) * 10) - idx;
 
-                        return (
-                            <div key={summary.id}
-                                onClick={() => navigate(`/contests/${summary.id}`)}
-                                style={{ ...sectionStyle, cursor: 'pointer', transition: 'all 0.2s', position: 'relative' }}
-                                onMouseEnter={e => {
-                                    e.currentTarget.style.borderColor = 'var(--accent)';
-                                    e.currentTarget.style.boxShadow = `0 4px 16px var(--shadow-md)`;
-                                }}
-                                onMouseLeave={e => {
-                                    e.currentTarget.style.borderColor = 'var(--border)';
-                                    e.currentTarget.style.boxShadow = `0 2px 8px var(--shadow)`;
-                                }}
-                            >
-                                {/* Delete Button */}
-                                <button
-                                    onClick={(e) => handleDeleteClick(e, summary.id)}
-                                    style={{
-                                        position: 'absolute',
-                                        top: '12px', right: '12px',
-                                        padding: '4px 10px',
-                                        backgroundColor: 'var(--error-light)',
-                                        color: 'var(--error)',
-                                        border: 'none',
-                                        borderRadius: '6px',
-                                        fontSize: '12px',
-                                        fontWeight: '600',
-                                        cursor: 'pointer',
-                                        zIndex: 1
+                            return (
+                                <div key={summary.id}
+                                    onClick={() => navigate(`/contests/${summary.id}`)}
+                                    style={{ ...sectionStyle, cursor: 'pointer', transition: 'all 0.2s', position: 'relative' }}
+                                    onMouseEnter={e => {
+                                        e.currentTarget.style.borderColor = 'var(--accent)';
+                                        e.currentTarget.style.boxShadow = `0 4px 16px var(--shadow-md)`;
+                                    }}
+                                    onMouseLeave={e => {
+                                        e.currentTarget.style.borderColor = 'var(--border)';
+                                        e.currentTarget.style.boxShadow = `0 2px 8px var(--shadow)`;
                                     }}
                                 >
-                                    🗑️ Delete
-                                </button>
+                                    {/* Delete Button */}
+                                    <button
+                                        onClick={(e) => handleDeleteClick(e, summary.id)}
+                                        style={{
+                                            position: 'absolute', top: '12px', right: '12px',
+                                            padding: '4px 10px',
+                                            backgroundColor: 'var(--error-light)', color: 'var(--error)',
+                                            border: 'none', borderRadius: '6px',
+                                            fontSize: '12px', fontWeight: '600', cursor: 'pointer', zIndex: 1
+                                        }}
+                                    >
+                                        🗑️ Delete
+                                    </button>
 
-                                {/* Top row */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', paddingRight: '80px' }}>
-                                    <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                                            <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>
-                                                Contest #{summaries.length - idx}
-                                            </span>
-                                            <span style={{
-                                                padding: '2px 10px', borderRadius: '20px',
-                                                backgroundColor: 'var(--bg-hover)', color: scoreColor,
-                                                fontSize: '12px', fontWeight: '700',
-                                                border: `1px solid var(--border)`
-                                            }}>
-                                                {scorePercent}%
-                                            </span>
-                                        </div>
-                                        <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                                            📅 {formatDate(summary.ended_at)}
-                                        </p>
-                                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                            ⏱ {summary.total_time} min · 📝 {total} questions
-                                        </p>
-                                    </div>
-
-                                    {/* Stats */}
-                                    <div style={{ display: 'flex', gap: isMobile ? '12px' : '16px' }}>
-                                        {[
-                                            { label: '✅', value: correct, color: 'var(--success)' },
-                                            { label: '❌', value: wrong, color: 'var(--error)' },
-                                            { label: '⏭️', value: unattempted, color: 'var(--warning)' }
-                                        ].map(stat => (
-                                            <div key={stat.label} style={{ textAlign: 'center' }}>
-                                                <p style={{ fontSize: isMobile ? '18px' : '20px', fontWeight: '800', color: stat.color }}>{stat.value}</p>
-                                                <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{stat.label}</p>
+                                    {/* Top row */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', paddingRight: '80px' }}>
+                                        <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                                                <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>
+                                                    Contest #{contestNumber}
+                                                </span>
+                                                <span style={{
+                                                    padding: '2px 10px', borderRadius: '20px',
+                                                    backgroundColor: 'var(--bg-hover)', color: scoreColor,
+                                                    fontSize: '12px', fontWeight: '700',
+                                                    border: `1px solid var(--border)`
+                                                }}>
+                                                    {scorePercent}%
+                                                </span>
                                             </div>
-                                        ))}
+                                            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                                📅 {formatDate(summary.ended_at)}
+                                            </p>
+                                            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                                ⏱ {summary.total_time} min · 📝 {total} questions
+                                            </p>
+                                        </div>
+
+                                        {/* Stats */}
+                                        <div style={{ display: 'flex', gap: isMobile ? '12px' : '16px' }}>
+                                            {[
+                                                { label: '✅', value: correct, color: 'var(--success)' },
+                                                { label: '❌', value: wrong, color: 'var(--error)' },
+                                                { label: '⏭️', value: unattempted, color: 'var(--warning)' }
+                                            ].map(stat => (
+                                                <div key={stat.label} style={{ textAlign: 'center' }}>
+                                                    <p style={{ fontSize: isMobile ? '18px' : '20px', fontWeight: '800', color: stat.color }}>{stat.value}</p>
+                                                    <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{stat.label}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Progress bar */}
+                                    <div style={{ height: '5px', backgroundColor: 'var(--bg-hover)', borderRadius: '3px', overflow: 'hidden' }}>
+                                        <div style={{
+                                            height: '100%', width: `${scorePercent}%`,
+                                            backgroundColor: scoreColor,
+                                            borderRadius: '3px', transition: 'width 0.3s'
+                                        }} />
                                     </div>
                                 </div>
+                            );
+                        })}
 
-                                {/* Progress bar */}
-                                <div style={{ height: '5px', backgroundColor: 'var(--bg-hover)', borderRadius: '3px', overflow: 'hidden' }}>
-                                    <div style={{
-                                        height: '100%', width: `${scorePercent}%`,
-                                        backgroundColor: scoreColor,
-                                        borderRadius: '3px', transition: 'width 0.3s'
-                                    }} />
-                                </div>
-                            </div>
-                        );
-                    })
+                        {/* Count & Pagination */}
+                        <p style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)', margin: '16px 0' }}>
+                            Showing {(currentPage - 1) * 10 + 1}–{Math.min(currentPage * 10, totalCount)} of {totalCount} contests
+                        </p>
+
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
+                    </>
                 )}
             </div>
 

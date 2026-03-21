@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 
-const getContestSummariesForUser = async (userId) => {
+const getContestSummariesForUser = async (userId, page = 1, limit = 10) => {
+    const offset = (page - 1) * limit;
     const result = await pool.query(
         `SELECT c.id, c.total_questions, c.total_time, c.started_at, c.ended_at, c.completed,
                 COUNT(cq.id) as question_count,
@@ -11,10 +12,19 @@ const getContestSummariesForUser = async (userId) => {
          LEFT JOIN contest_questions cq ON c.id = cq.contest_id
          WHERE c.user_id = $1 AND c.completed = TRUE
          GROUP BY c.id
-         ORDER BY c.ended_at DESC`,
-        [userId]
+         ORDER BY c.ended_at DESC
+         LIMIT $2 OFFSET $3`,
+        [userId, limit, offset]
     );
     return result.rows;
+};
+
+const countContestSummariesForUser = async (userId) => {
+    const result = await pool.query(
+        `SELECT COUNT(*) FROM contests WHERE user_id = $1 AND completed = TRUE`,
+        [userId]
+    );
+    return parseInt(result.rows[0].count);
 };
 
 const getContestSummaryById = async (contestId, userId) => {
@@ -81,6 +91,7 @@ const getQuestionsToRevisit = async (contestId) => {
 
 module.exports = {
     getContestSummariesForUser,
+    countContestSummariesForUser,
     getContestSummaryById,
     getContestQuestionsWithDetails,
     getTagSummaryForContest,

@@ -1,5 +1,6 @@
 const {
     getContestSummariesForUser,
+    countContestSummariesForUser,
     getContestSummaryById,
     getContestQuestionsWithDetails,
     getTagSummaryForContest,
@@ -12,8 +13,14 @@ const { getOptionsForQuestion, getFillAnswerForQuestion } = require('../models/q
 
 const getAllContestSummaries = async (req, res, next) => {
     try {
-        const summaries = await getContestSummariesForUser(req.user.id);
-        res.status(200).json({ summaries });
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+
+        const summaries = await getContestSummariesForUser(req.user.id, page, limit);
+        const totalCount = await countContestSummariesForUser(req.user.id);
+        const totalPages = Math.ceil(totalCount / limit);
+
+        res.status(200).json({ summaries, totalCount, totalPages, page, limit });
     } catch (error) {
         next(error);
     }
@@ -32,7 +39,6 @@ const getContestSummaryDetails = async (req, res, next) => {
         const questionsToRevisit = await getQuestionsToRevisit(contestId);
         const contestQuestions = await getContestQuestionsWithDetails(contestId);
 
-        // Add options/answers to each question
         const questionsWithAnswers = await Promise.all(
             contestQuestions.map(async (cq) => {
                 let correctAnswer = null;
@@ -43,16 +49,10 @@ const getContestSummaryDetails = async (req, res, next) => {
                     correctAnswer = fillAnswer ? fillAnswer.correct_answer : null;
                 } else {
                     options = await getOptionsForQuestion(cq.question_id);
-                    correctAnswer = options
-                        .filter(o => o.is_correct)
-                        .map(o => o.id);
+                    correctAnswer = options.filter(o => o.is_correct).map(o => o.id);
                 }
 
-                return {
-                    ...cq,
-                    options,
-                    correctAnswer
-                };
+                return { ...cq, options, correctAnswer };
             })
         );
 
