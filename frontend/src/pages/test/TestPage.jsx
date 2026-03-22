@@ -33,18 +33,24 @@ const TestPage = () => {
     const [optionImageSize, setOptionImageSize] = useState('medium');
     const questionStartTime = useRef(null);
     const totalTimerRef = useRef(null);
+    // Keep a ref of latest questionTimes so persistAnswer always has fresh values
+    const questionTimesRef = useRef({});
 
     useEffect(() => {
         fetchTest();
         return () => { clearInterval(totalTimerRef.current); };
     }, []);
 
+    // Keep ref in sync with state
+    useEffect(() => {
+        questionTimesRef.current = questionTimes;
+    }, [questionTimes]);
+
     const removeFromActiveContests = (cId) => {
         const existing = JSON.parse(localStorage.getItem('activeContests') || '[]');
         localStorage.setItem('activeContests', JSON.stringify(existing.filter(c => c.contestId !== cId)));
     };
 
-    // Save last visited question index per contest in localStorage
     const saveLastIndex = (idx) => {
         localStorage.setItem(`contestIndex_${contestId}`, String(idx));
     };
@@ -68,7 +74,6 @@ const TestPage = () => {
             setContest(res.data.contest);
             setQuestions(res.data.questions);
 
-            // Calculate remaining time
             const totalSeconds = res.data.contest.total_time * 60;
             let timeLeft = totalSeconds;
             const activeContests = JSON.parse(localStorage.getItem('activeContests') || '[]');
@@ -78,7 +83,6 @@ const TestPage = () => {
                 timeLeft = Math.max(0, activeContest.totalTime - elapsed);
             }
 
-            // Restore answers from DB (already saved per answer)
             const initialAnswers = {};
             const initialTimes = {};
             res.data.questions.forEach(q => {
@@ -87,8 +91,8 @@ const TestPage = () => {
             });
             setAnswers(initialAnswers);
             setQuestionTimes(initialTimes);
+            questionTimesRef.current = initialTimes;
 
-            // Restore last visited question index
             const lastIdx = getLastIndex(res.data.questions.length);
             setCurrentIndex(lastIdx);
 
@@ -120,42 +124,40 @@ const TestPage = () => {
     };
 
     const saveCurrentQuestionTime = useCallback((contestQuestionId) => {
-        if (!contestQuestionId || !questionStartTime.current) return 0;
+        if (!contestQuestionId || !questionStartTime.current) return;
         const elapsed = Math.floor((Date.now() - questionStartTime.current) / 1000);
-        setQuestionTimes(prev => ({ ...prev, [contestQuestionId]: (prev[contestQuestionId] || 0) + elapsed }));
-        return elapsed;
+        setQuestionTimes(prev => {
+            const updated = { ...prev, [contestQuestionId]: (prev[contestQuestionId] || 0) + elapsed };
+            questionTimesRef.current = updated;
+            return updated;
+        });
     }, []);
 
     const handleQuestionSwitch = (newIndex) => {
         const currentQ = questions[currentIndex];
         if (currentQ) saveCurrentQuestionTime(currentQ.contestQuestionId);
         setCurrentIndex(newIndex);
-        saveLastIndex(newIndex); // persist last visited index
+        saveLastIndex(newIndex);
         setShowNavigator(false);
         questionStartTime.current = Date.now();
     };
 
-    // Save answer immediately to DB whenever user selects an option
-    const persistAnswer = useCallback(async (contestQuestionId, chosenAnswer, currentTimes) => {
+    // Persist answer to DB immediately on selection — uses ref for fresh times
+    const persistAnswer = useCallback(async (contestQuestionId, chosenAnswer) => {
         try {
             await API.post('/tests/submit-answer', {
                 contestQuestionId,
                 chosenAnswer: chosenAnswer || null,
-                timeSpent: currentTimes[contestQuestionId] || 0
+                timeSpent: questionTimesRef.current[contestQuestionId] || 0
             });
         } catch (err) {
-            // Silent fail — answer is still in local state, will be saved on final submit too
             console.error('Failed to persist answer:', err.message);
         }
     }, []);
 
     const handleAnswerChange = (contestQuestionId, value) => {
-        setAnswers(prev => {
-            const updated = { ...prev, [contestQuestionId]: value };
-            // Save to DB immediately
-            persistAnswer(contestQuestionId, value, questionTimes);
-            return updated;
-        });
+        setAnswers(prev => ({ ...prev, [contestQuestionId]: value }));
+        persistAnswer(contestQuestionId, value);
     };
 
     const handleMultipleAnswerChange = (contestQuestionId, optionId) => {
@@ -165,31 +167,29 @@ const TestPage = () => {
                 ? current.filter(id => id !== optionId)
                 : [...current, optionId];
             const value = JSON.stringify(updated);
-            const newAnswers = { ...prev, [contestQuestionId]: value };
-            // Save to DB immediately
-            persistAnswer(contestQuestionId, value, questionTimes);
-            return newAnswers;
+            persistAnswer(contestQuestionId, value);
+            return { ...prev, [contestQuestionId]: value };
         });
     };
 
     const handleSubmit = async (autoSubmit = false) => {
         clearInterval(totalTimerRef.current);
-        const currentQ = questions[currentIndex];
-        let finalTimes = { ...questionTimes };
-        if (currentQ) {
-            const elapsed = Math.floor((Date.now() - questionStartTime.current) / 1000);
-            finalTimes[currentQ.contestQuestionId] = (finalTimes[currentQ.contestQuestionId] || 0) + elapsed;
-        }
         setSubmitting(true);
+
         try {
-            // Final save of all answers with accurate times
-            for (const q of questions) {
+            // Only save the CURRENT question's final time — all others already persisted
+            const currentQ = questions[currentIndex];
+            if (currentQ && questionStartTime.current) {
+                const elapsed = Math.floor((Date.now() - questionStartTime.current) / 1000);
+                const finalTime = (questionTimesRef.current[currentQ.contestQuestionId] || 0) + elapsed;
                 await API.post('/tests/submit-answer', {
-                    contestQuestionId: q.contestQuestionId,
-                    chosenAnswer: answers[q.contestQuestionId] || null,
-                    timeSpent: finalTimes[q.contestQuestionId] || 0
+                    contestQuestionId: currentQ.contestQuestionId,
+                    chosenAnswer: answers[currentQ.contestQuestionId] || null,
+                    timeSpent: finalTime
                 });
             }
+
+            // Now finalize the contest
             await API.post(`/tests/${contestId}/submit`);
             removeFromActiveContests(contestId);
             clearLastIndex(contestId);
@@ -252,16 +252,8 @@ const TestPage = () => {
                 {String.fromCharCode(65 + idx)}.{opt.option_text ? ` ${opt.option_text}` : ''}
             </span>
             {opt.option_image_url && (
-                <img
-                    src={opt.option_image_url}
-                    alt={`Option ${String.fromCharCode(65 + idx)}`}
-                    style={{
-                        maxWidth: currentSize.maxWidth,
-                        width: '100%', height: 'auto',
-                        borderRadius: '6px', display: 'block',
-                        border: '1px solid var(--border)'
-                    }}
-                />
+                <img src={opt.option_image_url} alt={`Option ${String.fromCharCode(65 + idx)}`}
+                    style={{ maxWidth: currentSize.maxWidth, width: '100%', height: 'auto', borderRadius: '6px', display: 'block', border: '1px solid var(--border)' }} />
             )}
         </div>
     );
@@ -292,8 +284,7 @@ const TestPage = () => {
                 ))}
             </div>
             {!isMobile && (
-                <button
-                    onClick={() => setShowAbandonModal(true)}
+                <button onClick={() => setShowAbandonModal(true)}
                     onMouseEnter={() => setLeaveHovered(true)}
                     onMouseLeave={() => setLeaveHovered(false)}
                     style={{
@@ -303,8 +294,7 @@ const TestPage = () => {
                         border: '1px solid var(--error)', borderRadius: '8px',
                         fontSize: '12px', fontWeight: '600', cursor: 'pointer',
                         transition: 'background-color 0.15s, color 0.15s'
-                    }}
-                >
+                    }}>
                     🚪 Leave Test
                 </button>
             )}
@@ -325,35 +315,23 @@ const TestPage = () => {
                     📝 {isMobile ? 'Test' : 'Test in Progress'}
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '14px' }}>
-                    {!isMobile && (
-                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                            {answeredCount}/{questions.length} answered
-                        </span>
-                    )}
+                    {!isMobile && <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{answeredCount}/{questions.length} answered</span>}
                     <div style={{ fontSize: isMobile ? '15px' : '18px', fontWeight: '800', color: timerColor, background: 'var(--glass-bg)', backdropFilter: 'blur(8px)', padding: '5px 10px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                         ⏱ {formatTimerDisplay(totalTimeLeft)}
                     </div>
                     {isMobile && (
-                        <button onClick={() => setShowNavigator(!showNavigator)} style={{
-                            padding: '5px 9px', backgroundColor: 'var(--accent-light)',
-                            color: 'var(--accent-text)', border: 'none', borderRadius: '7px',
-                            fontSize: '12px', fontWeight: '700', cursor: 'pointer'
-                        }}>{answeredCount}/{questions.length}</button>
+                        <button onClick={() => setShowNavigator(!showNavigator)} style={{ padding: '5px 9px', backgroundColor: 'var(--accent-light)', color: 'var(--accent-text)', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}>
+                            {answeredCount}/{questions.length}
+                        </button>
                     )}
                     {isMobile && (
-                        <button onClick={() => setShowAbandonModal(true)} style={{
-                            padding: '5px 9px', backgroundColor: 'var(--error-light)',
-                            color: 'var(--error)', border: 'none', borderRadius: '7px',
-                            fontSize: '12px', fontWeight: '700', cursor: 'pointer'
-                        }}>🚪</button>
+                        <button onClick={() => setShowAbandonModal(true)} style={{ padding: '5px 9px', backgroundColor: 'var(--error-light)', color: 'var(--error)', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}>🚪</button>
                     )}
                     <button onClick={() => setShowSubmitModal(true)} disabled={submitting} style={{
-                        padding: isMobile ? '6px 10px' : '8px 18px',
-                        background: 'var(--gradient-accent)',
+                        padding: isMobile ? '6px 10px' : '8px 18px', background: 'var(--gradient-accent)',
                         color: '#fff', border: 'none', borderRadius: '8px',
                         fontSize: isMobile ? '12px' : '13px', fontWeight: '700',
-                        cursor: submitting ? 'not-allowed' : 'pointer',
-                        boxShadow: '0 2px 8px var(--shadow)'
+                        cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: '0 2px 8px var(--shadow)'
                     }}>{submitting ? '...' : 'Submit'}</button>
                 </div>
             </div>
@@ -455,6 +433,7 @@ const TestPage = () => {
                 )}
             </div>
 
+            {/* Submit modal — shows spinner while submitting */}
             <ConfirmModal
                 isOpen={showSubmitModal}
                 title="Submit Test"
@@ -464,16 +443,21 @@ const TestPage = () => {
                 confirmText="Yes, Submit"
                 cancelText="Continue Test"
                 confirmColor="var(--accent)"
+                loading={submitting}
+                loadingText="Submitting..."
             />
+
             <ConfirmModal
                 isOpen={showAbandonModal}
                 title="⚠️ Leave Test"
                 message="Are you sure you want to leave? This test will be permanently deleted and nothing will be saved — no answers, no stats, nothing."
                 onConfirm={handleAbandon}
                 onCancel={() => setShowAbandonModal(false)}
-                confirmText={abandoning ? 'Leaving...' : 'Yes, Leave & Delete'}
+                confirmText="Yes, Leave & Delete"
                 cancelText="Stay in Test"
                 confirmColor="var(--error)"
+                loading={abandoning}
+                loadingText="Leaving..."
             />
         </div>
     );
