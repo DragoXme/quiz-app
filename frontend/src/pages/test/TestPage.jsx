@@ -44,12 +44,31 @@ const TestPage = () => {
         localStorage.setItem('activeContests', JSON.stringify(existing.filter(c => c.contestId !== cId)));
     };
 
+    // Save last visited question index per contest in localStorage
+    const saveLastIndex = (idx) => {
+        localStorage.setItem(`contestIndex_${contestId}`, String(idx));
+    };
+
+    const getLastIndex = (questionsCount) => {
+        const saved = localStorage.getItem(`contestIndex_${contestId}`);
+        if (saved !== null) {
+            const idx = parseInt(saved);
+            if (!isNaN(idx) && idx >= 0 && idx < questionsCount) return idx;
+        }
+        return 0;
+    };
+
+    const clearLastIndex = (cId) => {
+        localStorage.removeItem(`contestIndex_${cId}`);
+    };
+
     const fetchTest = async () => {
         try {
             const res = await API.get(`/tests/${contestId}/questions`);
             setContest(res.data.contest);
             setQuestions(res.data.questions);
 
+            // Calculate remaining time
             const totalSeconds = res.data.contest.total_time * 60;
             let timeLeft = totalSeconds;
             const activeContests = JSON.parse(localStorage.getItem('activeContests') || '[]');
@@ -59,6 +78,7 @@ const TestPage = () => {
                 timeLeft = Math.max(0, activeContest.totalTime - elapsed);
             }
 
+            // Restore answers from DB (already saved per answer)
             const initialAnswers = {};
             const initialTimes = {};
             res.data.questions.forEach(q => {
@@ -67,6 +87,11 @@ const TestPage = () => {
             });
             setAnswers(initialAnswers);
             setQuestionTimes(initialTimes);
+
+            // Restore last visited question index
+            const lastIdx = getLastIndex(res.data.questions.length);
+            setCurrentIndex(lastIdx);
+
             setLoading(false);
             questionStartTime.current = Date.now();
 
@@ -105,19 +130,45 @@ const TestPage = () => {
         const currentQ = questions[currentIndex];
         if (currentQ) saveCurrentQuestionTime(currentQ.contestQuestionId);
         setCurrentIndex(newIndex);
+        saveLastIndex(newIndex); // persist last visited index
         setShowNavigator(false);
         questionStartTime.current = Date.now();
     };
 
+    // Save answer immediately to DB whenever user selects an option
+    const persistAnswer = useCallback(async (contestQuestionId, chosenAnswer, currentTimes) => {
+        try {
+            await API.post('/tests/submit-answer', {
+                contestQuestionId,
+                chosenAnswer: chosenAnswer || null,
+                timeSpent: currentTimes[contestQuestionId] || 0
+            });
+        } catch (err) {
+            // Silent fail — answer is still in local state, will be saved on final submit too
+            console.error('Failed to persist answer:', err.message);
+        }
+    }, []);
+
     const handleAnswerChange = (contestQuestionId, value) => {
-        setAnswers(prev => ({ ...prev, [contestQuestionId]: value }));
+        setAnswers(prev => {
+            const updated = { ...prev, [contestQuestionId]: value };
+            // Save to DB immediately
+            persistAnswer(contestQuestionId, value, questionTimes);
+            return updated;
+        });
     };
 
     const handleMultipleAnswerChange = (contestQuestionId, optionId) => {
         setAnswers(prev => {
             const current = prev[contestQuestionId] ? JSON.parse(prev[contestQuestionId]) : [];
-            const updated = current.includes(optionId) ? current.filter(id => id !== optionId) : [...current, optionId];
-            return { ...prev, [contestQuestionId]: JSON.stringify(updated) };
+            const updated = current.includes(optionId)
+                ? current.filter(id => id !== optionId)
+                : [...current, optionId];
+            const value = JSON.stringify(updated);
+            const newAnswers = { ...prev, [contestQuestionId]: value };
+            // Save to DB immediately
+            persistAnswer(contestQuestionId, value, questionTimes);
+            return newAnswers;
         });
     };
 
@@ -131,6 +182,7 @@ const TestPage = () => {
         }
         setSubmitting(true);
         try {
+            // Final save of all answers with accurate times
             for (const q of questions) {
                 await API.post('/tests/submit-answer', {
                     contestQuestionId: q.contestQuestionId,
@@ -140,6 +192,7 @@ const TestPage = () => {
             }
             await API.post(`/tests/${contestId}/submit`);
             removeFromActiveContests(contestId);
+            clearLastIndex(contestId);
             navigate(`/test/${contestId}/result`);
         } catch (err) {
             setError('Failed to submit test.');
@@ -153,6 +206,7 @@ const TestPage = () => {
         try {
             await API.delete(`/tests/${contestId}/abandon`);
             removeFromActiveContests(contestId);
+            clearLastIndex(contestId);
             navigate('/home');
         } catch (err) {
             setError('Failed to abandon test.');
@@ -192,26 +246,19 @@ const TestPage = () => {
         display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '8px'
     });
 
-    // Renders one option row — text + image (never shows "(Image)" placeholder)
     const OptionContent = ({ opt, idx, isSelected }) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
-            {/* Label row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: isSelected ? '600' : '400' }}>
-                    {String.fromCharCode(65 + idx)}.{opt.option_text ? ` ${opt.option_text}` : ''}
-                </span>
-            </div>
-            {/* Actual image — sized, never cropped */}
+            <span style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: isSelected ? '600' : '400' }}>
+                {String.fromCharCode(65 + idx)}.{opt.option_text ? ` ${opt.option_text}` : ''}
+            </span>
             {opt.option_image_url && (
                 <img
                     src={opt.option_image_url}
                     alt={`Option ${String.fromCharCode(65 + idx)}`}
                     style={{
                         maxWidth: currentSize.maxWidth,
-                        width: '100%',
-                        height: 'auto',
-                        borderRadius: '6px',
-                        display: 'block',
+                        width: '100%', height: 'auto',
+                        borderRadius: '6px', display: 'block',
                         border: '1px solid var(--border)'
                     }}
                 />
@@ -321,7 +368,6 @@ const TestPage = () => {
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', borderRadius: '16px', padding: isMobile ? '16px' : '28px', boxShadow: '0 4px 20px var(--shadow)', border: '1px solid var(--glass-border)' }}>
 
-                        {/* Q header + type badge */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                             <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>Q {currentIndex + 1} of {questions.length}</span>
                             <span style={{ padding: '4px 10px', borderRadius: '20px', backgroundColor: 'var(--accent-light)', color: 'var(--accent-text)', fontSize: '11px', fontWeight: '700' }}>
@@ -329,7 +375,6 @@ const TestPage = () => {
                             </span>
                         </div>
 
-                        {/* Question text / image */}
                         {currentQ?.questionText && (
                             <p style={{ fontSize: isMobile ? '15px' : '16px', color: 'var(--text-primary)', lineHeight: '1.7', marginBottom: '20px', fontWeight: '500' }}>
                                 {currentQ.questionText}
@@ -339,29 +384,20 @@ const TestPage = () => {
                             <img src={currentQ.questionImageUrl} alt="Question" style={{ maxWidth: '100%', borderRadius: '8px', marginBottom: '20px', display: 'block' }} />
                         )}
 
-                        {/* Image size picker — shown only when current question has image options */}
                         {currentQHasOptionImages && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
                                 <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>Option image size:</span>
                                 {IMAGE_SIZES.map(s => (
-                                    <button
-                                        key={s.key}
-                                        onClick={() => setOptionImageSize(s.key)}
-                                        style={{
-                                            padding: '3px 9px', borderRadius: '6px', border: 'none',
-                                            background: optionImageSize === s.key ? 'var(--gradient-accent)' : 'var(--accent-light)',
-                                            color: optionImageSize === s.key ? '#fff' : 'var(--accent-text)',
-                                            fontSize: '11px', fontWeight: '700', cursor: 'pointer',
-                                            transition: 'all 0.15s'
-                                        }}
-                                    >
-                                        {s.label}
-                                    </button>
+                                    <button key={s.key} onClick={() => setOptionImageSize(s.key)} style={{
+                                        padding: '3px 9px', borderRadius: '6px', border: 'none',
+                                        background: optionImageSize === s.key ? 'var(--gradient-accent)' : 'var(--accent-light)',
+                                        color: optionImageSize === s.key ? '#fff' : 'var(--accent-text)',
+                                        fontSize: '11px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s'
+                                    }}>{s.label}</button>
                                 ))}
                             </div>
                         )}
 
-                        {/* MCQ Single */}
                         {currentQ?.type === 'mcq_single' && (
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                 {currentQ.options?.map((opt, idx) => {
@@ -378,7 +414,6 @@ const TestPage = () => {
                             </div>
                         )}
 
-                        {/* MCQ Multiple */}
                         {currentQ?.type === 'mcq_multiple' && (
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>Select all correct answers</p>
@@ -396,7 +431,6 @@ const TestPage = () => {
                             </div>
                         )}
 
-                        {/* Fill blank */}
                         {currentQ?.type === 'fill_blank' && (
                             <div>
                                 <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Type your answer below:</p>
