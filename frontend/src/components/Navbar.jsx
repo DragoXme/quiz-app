@@ -31,8 +31,6 @@ const Navbar = () => {
     ];
 
     const currentThemeIcon = themeOptions.find(o => o.key === preference)?.icon || '💻';
-
-    // Show displayName in navbar, fall back to username
     const displayName = user?.displayName || user?.username || '';
     const avatarLetter = displayName.charAt(0).toUpperCase();
 
@@ -60,7 +58,6 @@ const Navbar = () => {
                         fontSize: '14px', fontWeight: '600', color: 'var(--accent-text)', transition: 'all 0.2s'
                     }}
                 >
-                    {/* Avatar: Google picture or initial */}
                     {user?.avatarUrl ? (
                         <img src={user.avatarUrl} alt="" style={{ width: '28px', height: '28px', borderRadius: '8px', objectFit: 'cover' }} />
                     ) : (
@@ -77,18 +74,26 @@ const Navbar = () => {
                         position: 'absolute', top: '52px', right: 0,
                         backgroundColor: 'var(--dropdown-bg)', border: '1px solid var(--border)',
                         borderRadius: '16px', boxShadow: '0 8px 32px var(--shadow-md)',
-                        minWidth: '220px', zIndex: 200, overflow: 'hidden'
+                        width: '220px',           /* fixed width — clips both panels */
+                        zIndex: 200,
+                        overflow: 'hidden'        /* clips the sliding panels */
                     }}>
-                        <div style={{ display: 'flex', width: '440px', transform: showThemeMenu ? 'translateX(-220px)' : 'translateX(0)', transition: 'transform 0.25s ease' }}>
+                        {/* Sliding track — 440px wide, slides left to reveal theme panel */}
+                        <div style={{
+                            display: 'flex',
+                            width: '440px',
+                            transform: showThemeMenu ? 'translateX(-220px)' : 'translateX(0)',
+                            transition: 'transform 0.25s ease'
+                        }}>
 
-                            {/* Main menu */}
+                            {/* ── LEFT PANEL: main menu ── */}
                             <div style={{ width: '220px', flexShrink: 0 }}>
                                 <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-light)', background: 'var(--gradient-card)' }}>
                                     <p style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>{displayName}</p>
                                     <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>@{user?.username}</p>
-                                    {user?.authProvider === 'google' || user?.authProvider === 'both' ? (
+                                    {(user?.authProvider === 'google' || user?.authProvider === 'both') && (
                                         <span style={{ fontSize: '10px', color: 'var(--accent-text)', fontWeight: '600', marginTop: '4px', display: 'inline-block' }}>🔵 Google account</span>
-                                    ) : null}
+                                    )}
                                 </div>
 
                                 {[
@@ -120,7 +125,7 @@ const Navbar = () => {
                                 >🚪 Logout</div>
                             </div>
 
-                            {/* Theme submenu */}
+                            {/* ── RIGHT PANEL: theme menu ── */}
                             <div style={{ width: '220px', flexShrink: 0 }}>
                                 <div onClick={() => setShowThemeMenu(false)}
                                     style={{ padding: '11px 16px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-light)', fontWeight: '600', transition: 'background-color 0.15s' }}

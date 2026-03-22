@@ -13,13 +13,11 @@ const HomePage = () => {
 
     useEffect(() => {
         loadContests();
-        // Tick every second to update time left
         timerRef.current = setInterval(() => {
             setActiveContests(prev => {
                 const updated = prev
                     .map(c => ({ ...c, timeLeft: c.timeLeft - 1 }))
                     .filter(c => c.timeLeft > 0);
-                // Sync expired ones out of localStorage
                 const saved = JSON.parse(localStorage.getItem('activeContests') || '[]');
                 const validIds = new Set(updated.map(c => c.contestId));
                 localStorage.setItem('activeContests', JSON.stringify(
@@ -62,6 +60,9 @@ const HomePage = () => {
 
     const visibleContests = expanded ? activeContests : activeContests.slice(0, 1);
 
+    // Show display name, fall back to username
+    const displayName = user?.displayName || user?.username || '';
+
     return (
         <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
             <Navbar />
@@ -72,7 +73,7 @@ const HomePage = () => {
                     <h1 style={{ fontSize: '30px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '6px' }}>
                         Welcome back,{' '}
                         <span style={{ background: 'var(--gradient-accent)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                            {user?.username}
+                            {displayName}
                         </span>! 👋
                     </h1>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>What would you like to do today?</p>
@@ -87,16 +88,13 @@ const HomePage = () => {
                                 {activeContests.length} unfinished test{activeContests.length > 1 ? 's' : ''}
                             </p>
                             {activeContests.length > 1 && (
-                                <button
-                                    onClick={() => setExpanded(!expanded)}
-                                    style={{
-                                        background: 'var(--glass-bg)', backdropFilter: 'blur(8px)',
-                                        border: '1px solid var(--warning)', color: 'var(--warning)',
-                                        borderRadius: '20px', padding: '3px 12px',
-                                        fontSize: '12px', fontWeight: '600', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', gap: '4px',
-                                        transition: 'all 0.2s'
-                                    }}
+                                <button onClick={() => setExpanded(!expanded)} style={{
+                                    background: 'var(--glass-bg)', backdropFilter: 'blur(8px)',
+                                    border: '1px solid var(--warning)', color: 'var(--warning)',
+                                    borderRadius: '20px', padding: '3px 12px',
+                                    fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.2s'
+                                }}
                                     onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--warning)'; e.currentTarget.style.color = '#fff'; }}
                                     onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--glass-bg)'; e.currentTarget.style.color = 'var(--warning)'; }}
                                 >
@@ -108,11 +106,9 @@ const HomePage = () => {
 
                         {visibleContests.map((c, idx) => (
                             <div key={c.contestId} className={idx > 0 ? 'slide-down' : ''} style={{
-                                background: 'var(--warning-light)',
-                                border: '1.5px solid var(--warning)',
-                                borderRadius: '14px', padding: '14px 18px',
-                                marginBottom: '8px', display: 'flex',
-                                alignItems: 'center', justifyContent: 'space-between',
+                                background: 'var(--warning-light)', border: '1.5px solid var(--warning)',
+                                borderRadius: '14px', padding: '14px 18px', marginBottom: '8px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                 flexWrap: 'wrap', gap: '10px'
                             }}>
                                 <div>
@@ -123,24 +119,19 @@ const HomePage = () => {
                                         ⏱ {formatTimeLeft(c.timeLeft)}
                                     </p>
                                 </div>
-                                <button
-                                    onClick={() => navigate(`/test/${c.contestId}`)}
+                                <button onClick={() => navigate(`/test/${c.contestId}`)}
                                     onMouseEnter={() => setHoveredResume(c.contestId)}
                                     onMouseLeave={() => setHoveredResume(null)}
                                     style={{
                                         padding: '8px 20px',
-                                        background: hoveredResume === c.contestId
-                                            ? 'linear-gradient(135deg, #EF4444, #F59E0B)'
-                                            : 'linear-gradient(135deg, #F59E0B, #EF4444)',
+                                        background: hoveredResume === c.contestId ? 'linear-gradient(135deg, #EF4444, #F59E0B)' : 'linear-gradient(135deg, #F59E0B, #EF4444)',
                                         color: '#fff', border: 'none', borderRadius: '10px',
                                         fontSize: '13px', fontWeight: '700', cursor: 'pointer',
                                         transform: hoveredResume === c.contestId ? 'translateY(-2px) scale(1.03)' : 'translateY(0) scale(1)',
                                         boxShadow: hoveredResume === c.contestId ? '0 6px 18px rgba(245,158,11,0.45)' : '0 2px 8px rgba(0,0,0,0.12)',
                                         transition: 'all 0.2s ease'
                                     }}
-                                >
-                                    Resume →
-                                </button>
+                                >Resume →</button>
                             </div>
                         ))}
                     </div>
@@ -151,11 +142,10 @@ const HomePage = () => {
                     {cards.map((card) => (
                         <div key={card.path} onClick={() => navigate(card.path)} style={{
                             background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)',
-                            WebkitBackdropFilter: 'var(--glass-blur)',
-                            borderRadius: '20px', padding: '28px 24px', cursor: 'pointer',
-                            boxShadow: '0 4px 20px var(--shadow)', border: '1px solid var(--glass-border)',
-                            transition: 'all 0.25s ease', textAlign: 'center',
-                            position: 'relative', overflow: 'hidden'
+                            WebkitBackdropFilter: 'var(--glass-blur)', borderRadius: '20px',
+                            padding: '28px 24px', cursor: 'pointer', boxShadow: '0 4px 20px var(--shadow)',
+                            border: '1px solid var(--glass-border)', transition: 'all 0.25s ease',
+                            textAlign: 'center', position: 'relative', overflow: 'hidden'
                         }}
                             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = '0 16px 40px var(--shadow-md)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
                             onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px var(--shadow)'; e.currentTarget.style.borderColor = 'var(--glass-border)'; }}
@@ -178,10 +168,10 @@ const HomePage = () => {
                     ].map(item => (
                         <div key={item.path} onClick={() => navigate(item.path)} style={{
                             background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)',
-                            WebkitBackdropFilter: 'var(--glass-blur)',
-                            borderRadius: '16px', padding: '18px 20px', cursor: 'pointer',
-                            boxShadow: '0 2px 12px var(--shadow)', border: '1px solid var(--glass-border)',
-                            display: 'flex', alignItems: 'center', gap: '14px', transition: 'all 0.2s'
+                            WebkitBackdropFilter: 'var(--glass-blur)', borderRadius: '16px',
+                            padding: '18px 20px', cursor: 'pointer', boxShadow: '0 2px 12px var(--shadow)',
+                            border: '1px solid var(--glass-border)', display: 'flex',
+                            alignItems: 'center', gap: '14px', transition: 'all 0.2s'
                         }}
                             onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 6px 20px var(--shadow-md)'; e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
                             onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 12px var(--shadow)'; e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.transform = 'translateY(0)'; }}
