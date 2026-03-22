@@ -1,17 +1,28 @@
 import React, { useState } from 'react';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
+import { useGoogleLogin } from '@react-oauth/google';
 import API from '../../api/axios';
 import useAuth from '../../hooks/useAuth';
+
+const GoogleIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+        <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+        <path d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" fill="#FBBC05"/>
+        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+    </svg>
+);
 
 const SignupPage = () => {
     const navigate = useNavigate();
     const { login, user, loading: authLoading } = useAuth();
     const [step, setStep] = useState(1);
-    const [form, setForm] = useState({ username: '', email: '', mobile: '', password: '', confirmPassword: '' });
+    const [form, setForm] = useState({ displayName: '', username: '', email: '', mobile: '', password: '', confirmPassword: '' });
     const [otp, setOtp] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
 
     if (!authLoading && user) return <Navigate to="/home" replace />;
 
@@ -19,7 +30,9 @@ const SignupPage = () => {
 
     const handleSendOTP = async (e) => {
         e.preventDefault(); setError(''); setSuccess('');
-        if (!form.username || !form.email || !form.password || !form.confirmPassword) { setError('Please fill in all required fields.'); return; }
+        if (!form.displayName || !form.username || !form.email || !form.password || !form.confirmPassword) {
+            setError('Please fill in all required fields.'); return;
+        }
         if (form.password !== form.confirmPassword) { setError('Passwords do not match.'); return; }
         if (form.password.length < 6) { setError('Password must be at least 6 characters.'); return; }
         setSubmitting(true);
@@ -43,10 +56,34 @@ const SignupPage = () => {
         finally { setSubmitting(false); }
     };
 
+    const googleLogin = useGoogleLogin({
+        onSuccess: async (tokenResponse) => {
+            setGoogleLoading(true);
+            setError('');
+            try {
+                const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                }).then(r => r.json());
+
+                const res = await API.post('/auth/google', { googleUserInfo: userInfo, rememberMe: false });
+                login(res.data.user, res.data.token, false);
+                navigate('/home');
+            } catch (err) {
+                setError('Google sign-up failed. Please try again.');
+            } finally {
+                setGoogleLoading(false);
+            }
+        },
+        onError: () => {
+            setError('Google sign-up was cancelled or failed.');
+            setGoogleLoading(false);
+        }
+    });
+
     const cardStyle = {
         background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)',
         WebkitBackdropFilter: 'var(--glass-blur)', borderRadius: '24px',
-        padding: '40px', width: '100%', maxWidth: '420px',
+        padding: '40px', width: '100%', maxWidth: '440px',
         boxShadow: '0 8px 40px var(--shadow-md)', border: '1px solid var(--glass-border)'
     };
 
@@ -99,21 +136,57 @@ const SignupPage = () => {
                 {success && <div style={{ backgroundColor: 'var(--success-light)', color: 'var(--success)', padding: '12px 16px', borderRadius: '10px', fontSize: '13px', marginBottom: '16px', border: '1px solid var(--success)' }}>{success}</div>}
 
                 {step === 1 && (
-                    <form onSubmit={handleSendOTP}>
-                        <label style={labelStyle}>Username *</label>
-                        <input style={inputStyle} type="text" name="username" value={form.username} onChange={handleChange} placeholder="Enter username" />
-                        <label style={labelStyle}>Email *</label>
-                        <input style={inputStyle} type="email" name="email" value={form.email} onChange={handleChange} placeholder="Enter email" />
-                        <label style={labelStyle}>Mobile (optional)</label>
-                        <input style={inputStyle} type="tel" name="mobile" value={form.mobile} onChange={handleChange} placeholder="Enter mobile number" />
-                        <label style={labelStyle}>Password *</label>
-                        <input style={inputStyle} type="password" name="password" value={form.password} onChange={handleChange} placeholder="Min 6 characters" />
-                        <label style={labelStyle}>Confirm Password *</label>
-                        <input style={inputStyle} type="password" name="confirmPassword" value={form.confirmPassword} onChange={handleChange} placeholder="Re-enter password" />
-                        <button type="submit" disabled={submitting} style={primaryBtn(submitting)}>
-                            {submitting ? 'Sending OTP...' : 'Send Verification OTP'}
+                    <>
+                        {/* Google signup */}
+                        <button
+                            type="button"
+                            onClick={() => googleLogin()}
+                            disabled={googleLoading || submitting}
+                            style={{
+                                width: '100%', padding: '12px', borderRadius: '10px',
+                                border: '1.5px solid var(--border)', background: 'var(--glass-bg)',
+                                backdropFilter: 'blur(8px)', color: 'var(--text-primary)',
+                                fontSize: '14px', fontWeight: '600', cursor: googleLoading ? 'not-allowed' : 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                                marginBottom: '20px', transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
+                            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                        >
+                            <GoogleIcon />
+                            {googleLoading ? 'Signing up...' : 'Sign up with Google'}
                         </button>
-                    </form>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                            <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border)' }} />
+                            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '600' }}>OR</span>
+                            <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border)' }} />
+                        </div>
+
+                        <form onSubmit={handleSendOTP}>
+                            <label style={labelStyle}>Display Name * <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '400' }}>(shown publicly)</span></label>
+                            <input style={inputStyle} type="text" name="displayName" value={form.displayName} onChange={handleChange} placeholder="e.g. Shekhar Aggarwal" />
+
+                            <label style={labelStyle}>Username * <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '400' }}>(unique login ID)</span></label>
+                            <input style={inputStyle} type="text" name="username" value={form.username} onChange={handleChange} placeholder="e.g. shekhar123" />
+
+                            <label style={labelStyle}>Email *</label>
+                            <input style={inputStyle} type="email" name="email" value={form.email} onChange={handleChange} placeholder="Enter email" />
+
+                            <label style={labelStyle}>Mobile (optional)</label>
+                            <input style={inputStyle} type="tel" name="mobile" value={form.mobile} onChange={handleChange} placeholder="Enter mobile number" />
+
+                            <label style={labelStyle}>Password *</label>
+                            <input style={inputStyle} type="password" name="password" value={form.password} onChange={handleChange} placeholder="Min 6 characters" />
+
+                            <label style={labelStyle}>Confirm Password *</label>
+                            <input style={inputStyle} type="password" name="confirmPassword" value={form.confirmPassword} onChange={handleChange} placeholder="Re-enter password" />
+
+                            <button type="submit" disabled={submitting} style={primaryBtn(submitting)}>
+                                {submitting ? 'Sending OTP...' : 'Send Verification OTP'}
+                            </button>
+                        </form>
+                    </>
                 )}
 
                 {step === 2 && (

@@ -4,6 +4,7 @@ const {
     sendSignupOTP,
     signup,
     login,
+    googleAuth,
     forgotPassword,
     verifyOTP,
     resetPassword
@@ -12,6 +13,7 @@ const {
 router.post('/send-signup-otp', sendSignupOTP);
 router.post('/signup', signup);
 router.post('/login', login);
+router.post('/google', googleAuth);
 router.post('/forgot-password', forgotPassword);
 router.post('/verify-otp', verifyOTP);
 router.post('/reset-password', resetPassword);
