@@ -39,8 +39,9 @@ const CreateQuestionPage = () => {
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
     const [showClearModal, setShowClearModal] = useState(false);
+    const [savedCount, setSavedCount] = useState(0);
 
-    const handleClear = () => {
+    const resetForm = () => {
         setQuestionType('');
         setQuestionInputType('text');
         setQuestionText('');
@@ -53,7 +54,12 @@ const CreateQuestionPage = () => {
         setTags([]);
         setIsStarred(false);
         setError('');
+    };
+
+    const handleClear = () => {
+        resetForm();
         setSuccess('');
+        setSavedCount(0);
         setShowClearModal(false);
     };
 
@@ -86,8 +92,10 @@ const CreateQuestionPage = () => {
                 tags: tags.map(t => t.name),
                 isStarred
             });
-            setSuccess('Question created successfully!');
-            setTimeout(() => navigate('/questions'), 1500);
+            // Increment saved count and reset form — stay on page for next question
+            setSavedCount(prev => prev + 1);
+            setSuccess('✅ Question saved! Add another one or go back when done.');
+            resetForm();
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to create question.');
         } finally {
@@ -134,7 +142,26 @@ const CreateQuestionPage = () => {
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
                     <button onClick={() => navigate('/home')} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}>←</button>
-                    <h1 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>Create Question</h1>
+                    <div>
+                        <h1 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>Create Question</h1>
+                        {savedCount > 0 && (
+                            <p style={{ fontSize: '13px', color: 'var(--success)', fontWeight: '600', marginTop: '2px' }}>
+                                ✅ {savedCount} question{savedCount > 1 ? 's' : ''} saved this session
+                            </p>
+                        )}
+                    </div>
+                    {/* Go to Explore button — visible once at least one question saved */}
+                    {savedCount > 0 && (
+                        <button onClick={() => navigate('/questions')} style={{
+                            marginLeft: 'auto', padding: '8px 16px',
+                            background: 'var(--gradient-accent)', color: '#fff',
+                            border: 'none', borderRadius: '10px',
+                            fontSize: '13px', fontWeight: '700', cursor: 'pointer',
+                            boxShadow: '0 2px 8px var(--shadow)'
+                        }}>
+                            View Questions →
+                        </button>
+                    )}
                 </div>
 
                 {error && <div style={{ backgroundColor: 'var(--error-light)', color: 'var(--error)', padding: '12px 16px', borderRadius: '10px', fontSize: '14px', marginBottom: '16px', border: '1px solid var(--error)' }}>{error}</div>}
@@ -204,7 +231,7 @@ const CreateQuestionPage = () => {
                             )}
                         </div>
 
-                        {/* Tags — elevated z-index so dropdown appears above cards below */}
+                        {/* Tags */}
                         <div style={{ ...glassCard, position: 'relative', zIndex: 10 }}>
                             <label style={labelStyle}>Tags * (at least 1 required)</label>
                             <TagInput selectedTags={tags} onChange={setTags} />
@@ -229,7 +256,7 @@ const CreateQuestionPage = () => {
                                 cursor: loading ? 'not-allowed' : 'pointer',
                                 boxShadow: loading ? 'none' : '0 4px 16px var(--shadow-md)'
                             }}>
-                                {loading ? 'Saving...' : '💾 Save Question'}
+                                {loading ? 'Saving...' : '💾 Save & Add Another'}
                             </button>
                             <button onClick={() => setShowClearModal(true)} style={{
                                 padding: '14px 24px', backgroundColor: 'var(--error-light)',
