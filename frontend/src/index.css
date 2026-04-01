@@ -41,8 +41,9 @@
     --glass-bg: rgba(255, 255, 255, 0.52);
     --glass-border: rgba(255, 255, 255, 0.75);
     --glass-blur: blur(16px);
-    /* Fully opaque dropdown for readability */
     --dropdown-bg: #FFFFFF;
+    --sidebar-bg: #F5F5FF;
+    --sidebar-border: rgba(99, 102, 241, 0.18);
 }
 
 /* ============================================
@@ -82,28 +83,39 @@
     --glass-bg: rgba(16, 16, 32, 0.60);
     --glass-border: rgba(124, 127, 255, 0.24);
     --glass-blur: blur(16px);
-    /* Fully opaque dropdown for readability */
     --dropdown-bg: #1A1A32;
+    --sidebar-bg: #0E0E20;
+    --sidebar-border: rgba(124, 127, 255, 0.20);
 }
 
 /* ============================================
    ANIMATIONS
    ============================================ */
-@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fadeIn    { from { opacity: 0; } to { opacity: 1; } }
-@keyframes pulse     { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+@keyframes slideDown    { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes slideOutRight{ from { transform: translateX(0); }    to { transform: translateX(100%); } }
+@keyframes fadeIn       { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pulse        { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+@keyframes todoSlideIn  { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes checkPop     { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+@keyframes sidebarIn    { from { transform: translateX(-100%); } to { transform: translateX(0); } }
 
-.slide-down { animation: slideDown 0.3s ease forwards; }
-.fade-in    { animation: fadeIn   0.2s ease forwards; }
-.pulse      { animation: pulse    2s   ease infinite; }
+.slide-down     { animation: slideDown    0.3s ease forwards; }
+.fade-in        { animation: fadeIn       0.2s ease forwards; }
+.pulse          { animation: pulse        2s   ease infinite; }
+.todo-item-in   { animation: todoSlideIn  0.2s ease forwards; }
+.check-pop      { animation: checkPop     0.25s ease forwards; }
+
+/* ============================================
+   SIDEBAR SLIDE
+   ============================================ */
+.sidebar-open  { animation: slideInRight  0.28s cubic-bezier(0.4,0,0.2,1) forwards; }
+.sidebar-close { animation: slideOutRight 0.24s cubic-bezier(0.4,0,0.2,1) forwards; }
 
 /* ============================================
    BASE
    ============================================ */
-html {
-    height: 100%;
-    overscroll-behavior: none;
-}
+html { height: 100%; overscroll-behavior: none; }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
@@ -115,9 +127,6 @@ body {
     overscroll-behavior: none;
 }
 
-/* ============================================
-   LIGHT MODE BACKGROUND
-   ============================================ */
 :root[data-theme="light"] body {
     background-color: #E4E6FF;
     background-image:
@@ -126,9 +135,6 @@ body {
     background-attachment: fixed;
 }
 
-/* ============================================
-   DARK MODE BACKGROUND
-   ============================================ */
 :root[data-theme="dark"] body {
     background-color: #07070F;
     background-image:
@@ -137,18 +143,11 @@ body {
     background-attachment: fixed;
 }
 
-/* #root must be transparent so body gradient shows through */
-#root {
-    min-height: 100vh;
-    background: transparent !important;
-}
+#root { min-height: 100vh; background: transparent !important; }
 
 a { text-decoration: none; color: inherit; }
 
-/* ============================================
-   SCROLLBAR
-   ============================================ */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
