@@ -1,8 +1,6 @@
 const pool = require('../config/db');
 
-// ── Helpers ──
-
-// Returns YYYY-MM-DD string in LOCAL time (avoids UTC shift)
+// Returns YYYY-MM-DD in server local time
 const toDateStr = (date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -10,13 +8,11 @@ const toDateStr = (date) => {
     return `${y}-${m}-${d}`;
 };
 
-// Fetch all saved instance statuses for a given todo_id
 const getInstanceStatuses = async (todoId) => {
     const result = await pool.query(
         `SELECT instance_date, status, partial_note FROM todo_instances WHERE todo_id = $1`,
         [todoId]
     );
-    // Map: 'YYYY-MM-DD' -> { status, partial_note }
     const map = {};
     for (const row of result.rows) {
         const dateStr = toDateStr(new Date(row.instance_date));
@@ -25,7 +21,6 @@ const getInstanceStatuses = async (todoId) => {
     return map;
 };
 
-// Upsert an instance status
 const upsertInstance = async (todoId, dateStr, status, partialNote) => {
     await pool.query(
         `INSERT INTO todo_instances (todo_id, instance_date, status, partial_note)
@@ -35,8 +30,6 @@ const upsertInstance = async (todoId, dateStr, status, partialNote) => {
         [todoId, dateStr, status, partialNote || null]
     );
 };
-
-// ── Controllers ──
 
 const getTodos = async (req, res, next) => {
     try {
@@ -52,65 +45,57 @@ const getTodos = async (req, res, next) => {
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        const todayStr = toDateStr(today);
+        const todayDow = today.getDay(); // 0=Sun ... 6=Sat
+
         const todos = [];
 
         for (const row of result.rows) {
             if (row.is_recurring && row.recur_days && row.recur_days.length > 0) {
-
-                // Load all saved instance statuses for this recurring task
                 const instanceMap = await getInstanceStatuses(row.id);
-
-                // Generate instances: today + next 6 days only (1 week window)
-                // Past instances are only shown if they have a saved status (partial/completed)
                 const instances = [];
 
-                // Past 7 days (show only if they have a non-pending saved status)
-                for (let d = 7; d >= 1; d--) {
+                // ── Past overdue instances (last 30 days) that are NOT completed ──
+                // Only show if they were NOT completed — so user knows they missed them
+                for (let d = 30; d >= 1; d--) {
                     const date = new Date(today);
                     date.setDate(today.getDate() - d);
-                    const dayOfWeek = date.getDay();
-                    if (!row.recur_days.includes(dayOfWeek)) continue;
+                    if (!row.recur_days.includes(date.getDay())) continue;
                     const dateStr = toDateStr(date);
                     const saved = instanceMap[dateStr];
-                    // Only include past dates if they have a saved state (so user can review)
-                    if (saved && saved.status !== 'pending') {
+                    // Only surface past days that were NOT completed (missed or partial)
+                    if (!saved || saved.status !== 'completed') {
                         instances.push({
                             ...row,
                             instanceId: `${row.id}_${dateStr}`,
                             due_date: dateStr,
-                            status: saved.status,
-                            partial_note: saved.partial_note
+                            status: saved ? saved.status : 'pending',
+                            partial_note: saved ? saved.partial_note : null
                         });
                     }
                 }
 
-                // Today + next 6 days (always show, fresh pending if no saved status)
-                for (let d = 0; d <= 6; d++) {
-                    const date = new Date(today);
-                    date.setDate(today.getDate() + d);
-                    const dayOfWeek = date.getDay();
-                    if (!row.recur_days.includes(dayOfWeek)) continue;
-                    const dateStr = toDateStr(date);
-                    const saved = instanceMap[dateStr];
+                // ── Today's instance (only if today is a recur day) ──
+                if (row.recur_days.includes(todayDow)) {
+                    const saved = instanceMap[todayStr];
                     instances.push({
                         ...row,
-                        instanceId: `${row.id}_${dateStr}`,
-                        due_date: dateStr,
-                        // Future/today instances: use saved if exists, else always pending
+                        instanceId: `${row.id}_${todayStr}`,
+                        due_date: todayStr,
                         status: saved ? saved.status : 'pending',
                         partial_note: saved ? saved.partial_note : null
                     });
                 }
 
+                // No future instances — they don't exist yet
                 todos.push(...instances);
 
             } else {
-                // Non-recurring: use base row status as-is
                 todos.push({ ...row, instanceId: String(row.id) });
             }
         }
 
-        // Sort: pending first, partial second, completed last; then by due_date asc
+        // Sort: pending → partial → completed, then by due_date asc
         todos.sort((a, b) => {
             const so = { pending: 0, partial: 1, completed: 2 };
             if (so[a.status] !== so[b.status]) return so[a.status] - so[b.status];
@@ -160,8 +145,6 @@ const updateTodo = async (req, res, next) => {
         const { text, status, partial_note, priority, due_date } = req.body;
         const rawId = req.params.id;
 
-        // Detect recurring instance: instanceId format is `uuid_YYYY-MM-DD`
-        // UUID v4 format: 8-4-4-4-12 characters
         const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
         const uuidMatch = rawId.match(uuidPattern);
         const baseId = uuidMatch ? uuidMatch[0] : rawId;
@@ -169,49 +152,35 @@ const updateTodo = async (req, res, next) => {
         const isRecurringInstance = !!dateStr;
 
         if (isRecurringInstance && (status !== undefined || partial_note !== undefined)) {
-            // Status/note changes on a recurring instance go to todo_instances table
             const newStatus = status !== undefined ? status : 'pending';
-            const newNote = partial_note !== undefined ? partial_note : null;
+            const newNote   = partial_note !== undefined ? partial_note : null;
             await upsertInstance(baseId, dateStr, newStatus, newNote);
 
-            // Return the updated instance (fetch base todo for metadata)
             const baseResult = await pool.query(
                 `SELECT id, text, status, partial_note, priority, due_date, is_recurring, recur_days, created_at
                  FROM todos WHERE id = $1 AND user_id = $2`,
                 [baseId, req.user.id]
             );
-            if (baseResult.rows.length === 0) {
-                return res.status(404).json({ message: 'Todo not found.' });
-            }
-            const base = baseResult.rows[0];
+            if (baseResult.rows.length === 0) return res.status(404).json({ message: 'Todo not found.' });
+
             return res.status(200).json({
-                todo: {
-                    ...base,
-                    instanceId: rawId,
-                    due_date: dateStr,
-                    status: newStatus,
-                    partial_note: newNote
-                }
+                todo: { ...baseResult.rows[0], instanceId: rawId, due_date: dateStr, status: newStatus, partial_note: newNote }
             });
         }
 
-        // Non-recurring update (or updating text/priority on recurring base)
         const fields = [];
         const values = [];
         let i = 1;
 
-        if (text         !== undefined) { fields.push(`text = $${i++}`);         values.push(text.trim()); }
-        if (priority     !== undefined) { fields.push(`priority = $${i++}`);     values.push(priority); }
-        if (due_date     !== undefined) { fields.push(`due_date = $${i++}`);     values.push(due_date || null); }
-        // For non-recurring todos, status/note go on the base row
+        if (text     !== undefined) { fields.push(`text = $${i++}`);     values.push(text.trim()); }
+        if (priority !== undefined) { fields.push(`priority = $${i++}`); values.push(priority); }
+        if (due_date !== undefined) { fields.push(`due_date = $${i++}`); values.push(due_date || null); }
         if (!isRecurringInstance) {
             if (status       !== undefined) { fields.push(`status = $${i++}`);       values.push(status); }
             if (partial_note !== undefined) { fields.push(`partial_note = $${i++}`); values.push(partial_note || null); }
         }
 
-        if (fields.length === 0) {
-            return res.status(400).json({ message: 'Nothing to update.' });
-        }
+        if (fields.length === 0) return res.status(400).json({ message: 'Nothing to update.' });
 
         values.push(baseId, req.user.id);
         const result = await pool.query(
@@ -220,12 +189,9 @@ const updateTodo = async (req, res, next) => {
              RETURNING id, text, status, partial_note, priority, due_date, is_recurring, recur_days, created_at`,
             values
         );
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Todo not found.' });
-        }
+        if (result.rows.length === 0) return res.status(404).json({ message: 'Todo not found.' });
 
-        const todo = result.rows[0];
-        res.status(200).json({ todo: { ...todo, instanceId: rawId } });
+        res.status(200).json({ todo: { ...result.rows[0], instanceId: rawId } });
     } catch (error) { next(error); }
 };
 
@@ -233,17 +199,13 @@ const deleteTodo = async (req, res, next) => {
     try {
         const rawId = req.params.id;
         const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-        const uuidMatch = rawId.match(uuidPattern);
-        const baseId = uuidMatch ? uuidMatch[0] : rawId;
+        const baseId = (rawId.match(uuidPattern) || [rawId])[0];
 
-        // Always delete the base todo (cascades to todo_instances via FK)
         const result = await pool.query(
             `DELETE FROM todos WHERE id = $1 AND user_id = $2 RETURNING id`,
             [baseId, req.user.id]
         );
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Todo not found.' });
-        }
+        if (result.rows.length === 0) return res.status(404).json({ message: 'Todo not found.' });
         res.status(200).json({ message: 'Todo deleted.' });
     } catch (error) { next(error); }
 };

@@ -2,6 +2,8 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    /* Remove blue tap highlight on ALL elements globally */
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* ============================================
@@ -146,6 +148,15 @@ body {
 #root { min-height: 100vh; background: transparent !important; }
 
 a { text-decoration: none; color: inherit; }
+
+/* Ensure buttons and links never show focus outlines on touch */
+button:focus,
+a:focus,
+input:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+}
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
