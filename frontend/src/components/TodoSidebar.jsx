@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import API from '../api/axios';
 
 // ── Sound effects ──
@@ -69,7 +69,6 @@ const formatDue = (dateStr) => {
     return { label: days[due.getDay()], color: '#9898C0' };
 };
 
-// SVG Icons
 const TrashIcon = () => (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
@@ -90,19 +89,14 @@ const RecurIcon = () => (
     </svg>
 );
 
-// Status cycle: pending → partial → completed → pending
-const STATUS_CONFIG = {
-    pending:   { label: 'Pending',  icon: null,  color: 'var(--border)',   bg: 'transparent' },
-    partial:   { label: 'Partial',  icon: '◑',   color: '#F59E0B',         bg: 'rgba(245,158,11,0.13)' },
-    completed: { label: 'Done',     icon: '✓',   color: '#10B981',         bg: 'rgba(16,185,129,0.13)' },
-};
-
 // ── Partial note modal ──
 const PartialModal = ({ todo, onSave, onClose }) => {
     const [note, setNote] = useState(todo.partial_note || '');
     return (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
-            onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+        <div
+            style={{ position: 'fixed', inset: 0, zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
+            onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+        >
             <div style={{ background: 'var(--dropdown-bg)', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '340px', boxShadow: '0 20px 60px rgba(0,0,0,0.35)', border: '1px solid var(--border)' }}>
                 <p style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '6px' }}>Partial Progress</p>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px' }}>"{todo.text}"</p>
@@ -123,8 +117,12 @@ const PartialModal = ({ todo, onSave, onClose }) => {
                     onBlur={e => e.target.style.borderColor = 'var(--input-border)'}
                 />
                 <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => onSave(note)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: 'var(--gradient-accent)', color: '#fff', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}>Save</button>
-                    <button onClick={onClose} style={{ padding: '10px 16px', borderRadius: '10px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
+                    <button onClick={() => onSave(note)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: 'var(--gradient-accent)', color: '#fff', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}>
+                        Save
+                    </button>
+                    <button onClick={onClose} style={{ padding: '10px 16px', borderRadius: '10px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '13px', cursor: 'pointer' }}>
+                        Cancel
+                    </button>
                 </div>
             </div>
         </div>
@@ -132,12 +130,11 @@ const PartialModal = ({ todo, onSave, onClose }) => {
 };
 
 const TodoSidebar = ({ open, onClose }) => {
-    const [todos, setTodos]               = useState([]);
-    const [loading, setLoading]           = useState(true);
-    const [filter, setFilter]             = useState('all');
-    const [partialTodo, setPartialTodo]   = useState(null);
+    const [todos, setTodos]             = useState([]);
+    const [loading, setLoading]         = useState(true);
+    const [filter, setFilter]           = useState('all');
+    const [partialTodo, setPartialTodo] = useState(null);
 
-    // Add form state
     const [newText, setNewText]           = useState('');
     const [newPriority, setNewPriority]   = useState('medium');
     const [newDueDate, setNewDueDate]     = useState('');
@@ -147,7 +144,6 @@ const TodoSidebar = ({ open, onClose }) => {
 
     useEffect(() => { if (open) fetchTodos(); }, [open]);
 
-    // Close on Escape key
     useEffect(() => {
         const onKey = (e) => { if (e.key === 'Escape') onClose(); };
         if (open) window.addEventListener('keydown', onKey);
@@ -192,24 +188,30 @@ const TodoSidebar = ({ open, onClose }) => {
         finally { setAdding(false); }
     };
 
-    const handleStatusCycle = async (todo) => {
-        const cycle = { pending: 'partial', partial: 'completed', completed: 'pending' };
-        const nextStatus = cycle[todo.status] || 'pending';
-
-        // If cycling to partial, show note modal first
-        if (nextStatus === 'partial') {
-            setPartialTodo(todo);
-            return;
-        }
-
-        playSound(nextStatus === 'completed' ? 'check' : nextStatus === 'partial' ? 'partial' : 'uncheck');
+    // Checkbox: simple toggle between pending/completed only
+    const handleCheckbox = async (todo) => {
+        // If partial → clicking checkbox marks as completed
+        // If completed → clicking unchecks back to pending
+        // If pending → clicking marks as completed
+        const nextStatus = todo.status === 'completed' ? 'pending' : 'completed';
+        playSound(nextStatus === 'completed' ? 'check' : 'uncheck');
         try {
             const res = await API.patch(`/todos/${todo.instanceId}`, {
                 status: nextStatus,
+                // Clear partial note when marking complete or undoing
                 partial_note: nextStatus === 'pending' ? null : todo.partial_note
             });
-            setTodos(prev => sortTodos(prev.map(t => t.instanceId === todo.instanceId ? { ...res.data.todo, instanceId: todo.instanceId } : t)));
+            setTodos(prev => sortTodos(prev.map(t =>
+                t.instanceId === todo.instanceId
+                    ? { ...res.data.todo, instanceId: todo.instanceId }
+                    : t
+            )));
         } catch (e) { console.error(e); }
+    };
+
+    // Partial button: explicitly opens the partial modal
+    const handlePartialClick = (todo) => {
+        setPartialTodo(todo);
     };
 
     const handlePartialSave = async (note) => {
@@ -218,7 +220,11 @@ const TodoSidebar = ({ open, onClose }) => {
         playSound('partial');
         try {
             const res = await API.patch(`/todos/${todo.instanceId}`, { status: 'partial', partial_note: note });
-            setTodos(prev => sortTodos(prev.map(t => t.instanceId === todo.instanceId ? { ...res.data.todo, instanceId: todo.instanceId } : t)));
+            setTodos(prev => sortTodos(prev.map(t =>
+                t.instanceId === todo.instanceId
+                    ? { ...res.data.todo, instanceId: todo.instanceId }
+                    : t
+            )));
         } catch (e) { console.error(e); }
     };
 
@@ -226,9 +232,7 @@ const TodoSidebar = ({ open, onClose }) => {
         playSound('delete');
         try {
             await API.delete(`/todos/${todo.instanceId}`);
-            // Remove all instances of the same base todo if recurring
-            const baseId = todo.id;
-            setTodos(prev => prev.filter(t => t.id !== baseId));
+            setTodos(prev => prev.filter(t => t.id !== todo.id));
         } catch (e) { console.error(e); }
     };
 
@@ -242,19 +246,13 @@ const TodoSidebar = ({ open, onClose }) => {
     const pct       = total > 0 ? Math.round(((completed + partial * 0.5) / total) * 100) : 0;
 
     const filtered = todos.filter(t =>
-        filter === 'all'      ? true :
-        filter === 'pending'  ? t.status === 'pending' :
-        filter === 'partial'  ? t.status === 'partial' :
-        filter === 'done'     ? t.status === 'completed' : true
+        filter === 'all'     ? true :
+        filter === 'pending' ? t.status === 'pending' :
+        filter === 'partial' ? t.status === 'partial' :
+        filter === 'done'    ? t.status === 'completed' : true
     );
 
     if (!open) return null;
-
-    const iBtn = (active) => ({
-        padding: '3px 8px', borderRadius: '20px', border: 'none',
-        fontSize: '11px', fontWeight: '700', cursor: 'pointer',
-        transition: 'all 0.15s', flexShrink: 0
-    });
 
     return (
         <>
@@ -265,7 +263,7 @@ const TodoSidebar = ({ open, onClose }) => {
                 animation: 'fadeIn 0.2s ease'
             }} />
 
-            {/* Partial note modal — above sidebar */}
+            {/* Partial modal — above sidebar */}
             {partialTodo && (
                 <PartialModal
                     todo={partialTodo}
@@ -285,7 +283,7 @@ const TodoSidebar = ({ open, onClose }) => {
                 animation: 'sidebarIn 0.28s cubic-bezier(0.4,0,0.2,1) forwards'
             }}>
 
-                {/* ── Header ── */}
+                {/* Header */}
                 <div style={{ padding: '18px 16px 14px', borderBottom: '1px solid var(--sidebar-border)', background: 'var(--gradient-card)', flexShrink: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: total > 0 ? '12px' : '0' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -316,21 +314,18 @@ const TodoSidebar = ({ open, onClose }) => {
                     )}
                 </div>
 
-                {/* ── Add Task Form ── */}
+                {/* Add form */}
                 <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--sidebar-border)', flexShrink: 0 }}>
                     <form onSubmit={handleAdd}>
-                        {/* Text + submit */}
                         <div style={{ display: 'flex', gap: '7px', marginBottom: '8px' }}>
                             <input
-                                type="text"
-                                value={newText}
+                                type="text" value={newText}
                                 onChange={e => setNewText(e.target.value)}
                                 placeholder="Add a study task..."
                                 style={{
                                     flex: 1, padding: '8px 11px', borderRadius: '10px',
                                     border: '1.5px solid var(--input-border)', fontSize: '13px',
-                                    outline: 'none', background: 'var(--bg-input)', color: 'var(--text-primary)',
-                                    minWidth: 0
+                                    outline: 'none', background: 'var(--bg-input)', color: 'var(--text-primary)', minWidth: 0
                                 }}
                                 onFocus={e => e.target.style.borderColor = 'var(--accent)'}
                                 onBlur={e => e.target.style.borderColor = 'var(--input-border)'}
@@ -343,20 +338,20 @@ const TodoSidebar = ({ open, onClose }) => {
                             }}>+</button>
                         </div>
 
-                        {/* Priority pills */}
                         <div style={{ display: 'flex', gap: '5px', marginBottom: '8px', flexWrap: 'wrap' }}>
                             {PRIORITIES.map(p => (
                                 <button key={p.key} type="button" onClick={() => setNewPriority(p.key)} style={{
-                                    ...iBtn(newPriority === p.key),
+                                    padding: '3px 9px', borderRadius: '20px', border: 'none',
+                                    fontSize: '11px', fontWeight: '700', cursor: 'pointer', flexShrink: 0,
                                     background: newPriority === p.key ? p.color : p.bg,
                                     color: newPriority === p.key ? '#fff' : p.color,
                                 }}>● {p.label}</button>
                             ))}
                         </div>
 
-                        {/* Recurring toggle + days */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: isRecurring ? '8px' : '0', flexWrap: 'wrap' }}>
-                            <button type="button" onClick={() => { setIsRecurring(p => !p); setRecurDays([]); setNewDueDate(''); }}
+                            <button type="button"
+                                onClick={() => { setIsRecurring(p => !p); setRecurDays([]); setNewDueDate(''); }}
                                 style={{
                                     display: 'flex', alignItems: 'center', gap: '5px',
                                     padding: '4px 10px', borderRadius: '20px', border: 'none',
@@ -366,7 +361,6 @@ const TodoSidebar = ({ open, onClose }) => {
                                 }}>
                                 <RecurIcon /> Recurring
                             </button>
-
                             {!isRecurring && (
                                 <div style={{ marginLeft: 'auto', position: 'relative', display: 'flex', alignItems: 'center' }}>
                                     <input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)}
@@ -384,7 +378,6 @@ const TodoSidebar = ({ open, onClose }) => {
                             )}
                         </div>
 
-                        {/* Day selector for recurring */}
                         {isRecurring && (
                             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                                 {DAYS.map(d => (
@@ -400,7 +393,7 @@ const TodoSidebar = ({ open, onClose }) => {
                     </form>
                 </div>
 
-                {/* ── Filter tabs ── */}
+                {/* Filter tabs */}
                 <div style={{ display: 'flex', gap: '3px', padding: '8px 12px', borderBottom: '1px solid var(--sidebar-border)', flexShrink: 0 }}>
                     {[
                         { key: 'all',     label: `All (${total})` },
@@ -418,7 +411,7 @@ const TodoSidebar = ({ open, onClose }) => {
                     ))}
                 </div>
 
-                {/* ── List ── */}
+                {/* List */}
                 <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px', WebkitOverflowScrolling: 'touch' }}>
                     {loading ? (
                         <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: '13px' }}>Loading tasks...</div>
@@ -430,10 +423,9 @@ const TodoSidebar = ({ open, onClose }) => {
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                             {filtered.map(todo => {
-                                const p = priorityOf(todo.priority);
+                                const p   = priorityOf(todo.priority);
                                 const due = formatDue(todo.due_date);
-                                const sc = STATUS_CONFIG[todo.status] || STATUS_CONFIG.pending;
-                                const isDone = todo.status === 'completed';
+                                const isDone    = todo.status === 'completed';
                                 const isPartial = todo.status === 'partial';
 
                                 return (
@@ -441,24 +433,22 @@ const TodoSidebar = ({ open, onClose }) => {
                                         display: 'flex', alignItems: 'flex-start', gap: '8px',
                                         padding: '10px 10px', borderRadius: '12px',
                                         background: isDone ? 'transparent' : 'var(--glass-bg)',
-                                        border: `1px solid ${isDone ? 'var(--border-light)' : isPartial ? 'rgba(245,158,11,0.35)' : 'var(--border)'}`,
+                                        border: `1px solid ${isDone ? 'var(--border-light)' : isPartial ? 'rgba(245,158,11,0.4)' : 'var(--border)'}`,
                                         opacity: isDone ? 0.5 : 1, transition: 'all 0.15s'
                                     }}>
                                         {/* Priority bar */}
                                         <div style={{ width: '3px', borderRadius: '2px', alignSelf: 'stretch', flexShrink: 0, background: p.color, minHeight: '20px' }} />
 
-                                        {/* Status button — cycles pending→partial→done */}
+                                        {/* ── Checkbox: pending ↔ completed only ── */}
                                         <button
-                                            onClick={() => handleStatusCycle(todo)}
-                                            title={`Status: ${todo.status} — click to cycle`}
+                                            onClick={() => handleCheckbox(todo)}
+                                            title={isDone ? 'Mark as pending' : 'Mark as done'}
                                             style={{
                                                 width: '22px', height: '22px', borderRadius: '6px', flexShrink: 0,
                                                 border: `2px solid ${isDone ? '#10B981' : isPartial ? '#F59E0B' : 'var(--border)'}`,
-                                                background: isDone ? '#10B981' : isPartial ? 'rgba(245,158,11,0.2)' : 'transparent',
+                                                background: isDone ? '#10B981' : isPartial ? 'rgba(245,158,11,0.15)' : 'transparent',
                                                 cursor: 'pointer', marginTop: '1px',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                fontSize: '11px', fontWeight: '700',
-                                                color: isDone ? '#fff' : isPartial ? '#F59E0B' : 'transparent',
                                                 transition: 'all 0.2s', padding: 0
                                             }}
                                         >
@@ -466,7 +456,9 @@ const TodoSidebar = ({ open, onClose }) => {
                                                 <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
                                                     <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
                                                 </svg>
-                                            ) : isPartial ? '◑' : ''}
+                                            ) : isPartial ? (
+                                                <span style={{ fontSize: '12px', color: '#F59E0B', lineHeight: 1 }}>◑</span>
+                                            ) : null}
                                         </button>
 
                                         {/* Content */}
@@ -502,35 +494,55 @@ const TodoSidebar = ({ open, onClose }) => {
                                                         <CalIcon /> {due.label}
                                                     </span>
                                                 )}
-                                                {/* Edit partial note button */}
-                                                {isPartial && (
-                                                    <button onClick={() => setPartialTodo(todo)} style={{
-                                                        fontSize: '10px', padding: '1px 6px', borderRadius: '6px',
-                                                        border: '1px solid rgba(245,158,11,0.4)', background: 'transparent',
-                                                        color: '#F59E0B', cursor: 'pointer', fontWeight: '600'
-                                                    }}>Edit note</button>
-                                                )}
                                             </div>
                                         </div>
 
-                                        {/* Delete */}
-                                        <button
-                                            onClick={() => handleDelete(todo)}
-                                            title="Delete task"
-                                            style={{
-                                                width: '28px', height: '28px', borderRadius: '7px',
-                                                border: '1px solid transparent', background: 'transparent',
-                                                color: 'var(--text-muted)', cursor: 'pointer', flexShrink: 0,
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                transition: 'all 0.15s', marginTop: '-1px'
-                                            }}
-                                            onMouseEnter={e => { e.currentTarget.style.background = 'var(--error-light)'; e.currentTarget.style.borderColor = 'var(--error)'; e.currentTarget.style.color = 'var(--error)'; }}
-                                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-                                            onTouchStart={e => { e.currentTarget.style.background = 'var(--error-light)'; e.currentTarget.style.color = 'var(--error)'; }}
-                                            onTouchEnd={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-                                        >
-                                            <TrashIcon />
-                                        </button>
+                                        {/* Right side actions: ◑ Partial + 🗑 Delete */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                                            {/* Partial button — only shown when not completed */}
+                                            {!isDone && (
+                                                <button
+                                                    onClick={() => handlePartialClick(todo)}
+                                                    title={isPartial ? 'Edit partial note' : 'Mark as partial'}
+                                                    style={{
+                                                        width: '28px', height: '28px', borderRadius: '7px',
+                                                        border: `1px solid ${isPartial ? 'rgba(245,158,11,0.5)' : 'transparent'}`,
+                                                        background: isPartial ? 'rgba(245,158,11,0.12)' : 'transparent',
+                                                        color: isPartial ? '#F59E0B' : 'var(--text-muted)',
+                                                        cursor: 'pointer', fontSize: '14px',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        transition: 'all 0.15s'
+                                                    }}
+                                                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(245,158,11,0.15)'; e.currentTarget.style.borderColor = 'rgba(245,158,11,0.5)'; e.currentTarget.style.color = '#F59E0B'; }}
+                                                    onMouseLeave={e => {
+                                                        e.currentTarget.style.background = isPartial ? 'rgba(245,158,11,0.12)' : 'transparent';
+                                                        e.currentTarget.style.borderColor = isPartial ? 'rgba(245,158,11,0.5)' : 'transparent';
+                                                        e.currentTarget.style.color = isPartial ? '#F59E0B' : 'var(--text-muted)';
+                                                    }}
+                                                    onTouchStart={e => { e.currentTarget.style.background = 'rgba(245,158,11,0.15)'; e.currentTarget.style.color = '#F59E0B'; }}
+                                                    onTouchEnd={e => { e.currentTarget.style.background = isPartial ? 'rgba(245,158,11,0.12)' : 'transparent'; e.currentTarget.style.color = isPartial ? '#F59E0B' : 'var(--text-muted)'; }}
+                                                >◑</button>
+                                            )}
+
+                                            {/* Delete button */}
+                                            <button
+                                                onClick={() => handleDelete(todo)}
+                                                title="Delete task"
+                                                style={{
+                                                    width: '28px', height: '28px', borderRadius: '7px',
+                                                    border: '1px solid transparent', background: 'transparent',
+                                                    color: 'var(--text-muted)', cursor: 'pointer',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    transition: 'all 0.15s'
+                                                }}
+                                                onMouseEnter={e => { e.currentTarget.style.background = 'var(--error-light)'; e.currentTarget.style.borderColor = 'var(--error)'; e.currentTarget.style.color = 'var(--error)'; }}
+                                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                                                onTouchStart={e => { e.currentTarget.style.background = 'var(--error-light)'; e.currentTarget.style.color = 'var(--error)'; }}
+                                                onTouchEnd={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                                            >
+                                                <TrashIcon />
+                                            </button>
+                                        </div>
                                     </div>
                                 );
                             })}
@@ -538,7 +550,7 @@ const TodoSidebar = ({ open, onClose }) => {
                     )}
                 </div>
 
-                {/* ── Footer ── */}
+                {/* Footer */}
                 {total > 0 && (
                     <div style={{ padding: '10px 14px', borderTop: '1px solid var(--sidebar-border)', textAlign: 'center', flexShrink: 0 }}>
                         <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
